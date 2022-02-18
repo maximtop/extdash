@@ -1,5 +1,7 @@
 # Extensions dashboard
 
+## Currently, deployed to heroku [extdash.herokuapp.com](https://extdash.herokuapp.com/)
+
 ## FEATURES TODO list
 - [ ] create api to deploy to the stores
   - [ ] chrome

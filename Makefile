@@ -1,5 +1,5 @@
 start:
-	CompileDaemon -command="./extdash"
+	PORT=3000 CompileDaemon -command="./extdash"
 
 build:
 	make clean && go build

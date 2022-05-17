@@ -1,14 +1,15 @@
 package main
 
 import (
-	"fmt"
+	"extdash/stores"
+	"github.com/gin-gonic/gin"
 	"log"
 	"net/http"
 	"os"
 )
 
-func root(w http.ResponseWriter, req *http.Request) {
-	fmt.Fprintf(w, "Extensions dashboard")
+func root(c *gin.Context) {
+	c.String(http.StatusOK, "Extensions dashboard")
 }
 
 func main() {
@@ -18,8 +19,13 @@ func main() {
 		log.Fatal("$PORT must be set")
 	}
 
-	http.HandleFunc("/", root)
-	http.HandleFunc("/extensions", ProcessExtensions)
+	router := gin.Default()
 
-	log.Fatal(http.ListenAndServe(":" + port, nil))
+	router.GET("/", root)
+
+	router.GET("/stores/:browser", stores.ProcessStatus)
+	router.POST("/stores/:browser", stores.ProcessPublish)
+	router.PATCH("/stores/:browser", stores.ProcessUpdate)
+
+	log.Fatal(router.Run(":" + port))
 }

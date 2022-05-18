@@ -22,8 +22,8 @@ func GetStore(clientID, clientSecret, refreshToken string) Store {
 	return s
 }
 
-func (s Store) GetAccessToken() string {
-	baseURL := "https://accounts.google.com/o/oauth2/token"
+func (s Store) AccessToken() string {
+	const baseURL = "https://accounts.google.com/o/oauth2/token"
 	data := url.Values{
 		"client_id":     {s.clientID},
 		"client_secret": {s.clientSecret},
@@ -35,7 +35,7 @@ func (s Store) GetAccessToken() string {
 	res, err := http.PostForm(baseURL, data)
 
 	if err != nil {
-		log.Fatal(err)
+		log.Panic(err)
 	}
 
 	defer res.Body.Close()
@@ -58,8 +58,8 @@ func (s Store) GetAccessToken() string {
 	return result["access_token"].(string)
 }
 
-func (s Store) GetStatus(appID string) string {
-	accessToken := s.GetAccessToken()
+func (s Store) Status(appID string) string {
+	accessToken := s.AccessToken()
 
 	baseURL, err := url.Parse("https://www.googleapis.com/chromewebstore/v1.1/items/")
 	if err != nil {
@@ -73,7 +73,7 @@ func (s Store) GetStatus(appID string) string {
 	client := &http.Client{}
 	req, err := http.NewRequest(http.MethodGet, baseURL.String(), nil)
 	if err != nil {
-		log.Fatal(err)
+		log.Panic(err)
 	}
 	req.Header.Add("Authorization", "Bearer "+accessToken)
 	q := req.URL.Query()
@@ -84,7 +84,7 @@ func (s Store) GetStatus(appID string) string {
 
 	res, err := client.Do(req)
 	if err != nil {
-		log.Fatal(err)
+		log.Panic(err)
 	}
 
 	defer res.Body.Close()
@@ -92,7 +92,7 @@ func (s Store) GetStatus(appID string) string {
 	body, err := io.ReadAll(res.Body)
 
 	if err != nil {
-		log.Panic("wasn't able to read response body")
+		log.Panic("Wasn't able to read response body")
 	}
 
 	return string(body)

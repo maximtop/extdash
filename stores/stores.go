@@ -3,6 +3,7 @@ package stores
 import (
 	chrome "extdash/stores/api"
 	"github.com/gin-gonic/gin"
+	"log"
 	"net/http"
 )
 
@@ -26,15 +27,17 @@ func getAPI(ctx *gin.Context) chrome.Store {
 	case Chrome:
 		return chrome.GetStore(clientID, clientSecret, refreshToken)
 	default:
-		panic("Wrong browser provided")
+		log.Panic("Wrong browser provided")
 	}
+
+	return chrome.Store{}
 }
 
 func ProcessStatus(ctx *gin.Context) {
 	api := getAPI(ctx)
 
 	appID := ctx.Query("app_id")
-	status := api.GetStatus(appID)
+	status := api.Status(appID)
 
 	ctx.String(http.StatusOK, status)
 }

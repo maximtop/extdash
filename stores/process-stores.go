@@ -10,44 +10,33 @@ type Browser string
 
 const (
 	Chrome Browser = "chrome"
-	//Firefox string = "firefox"
-	//Edge string = "edge"
-	//Opera string = "opera"
+	// Firefox string = "firefox"
+	// Edge string = "edge"
+	// Opera string = "opera"
 )
 
-type StoreApi interface {
-	getStatus(ctx *gin.Context) string
-}
+func getAPI(ctx *gin.Context) chrome.Store {
+	browser := Browser(ctx.Param("browser"))
 
-func getChromeStatus(c *gin.Context) string {
-	// FIXME мы будем эти параметры хранить в переменных окружения или передавать снаружи каждый раз?
-	clientId := c.Query("client_id")
-	clientSecret := c.Query("client_secret")
-	refreshToken := c.Query("refresh_token")
-	appId := c.Query("app_id")
+	clientID := ctx.Query("client_id")
+	clientSecret := ctx.Query("client_secret")
+	refreshToken := ctx.Query("refresh_token")
 
-	accessToken := chrome.GetAccessToken(clientId, clientSecret, refreshToken)
-
-	chrome.GetStatus(appId, accessToken)
-
-	return "ok"
-}
-
-func getApi(browser Browser) StoreApi {
 	switch browser {
 	case Chrome:
-		return chrome.Chrome
+		return chrome.GetStore(clientID, clientSecret, refreshToken)
 	default:
 		panic("Wrong browser provided")
 	}
 }
 
 func ProcessStatus(ctx *gin.Context) {
-	browser := Browser(ctx.Param("browser"))
+	api := getAPI(ctx)
 
-	api := getApi(browser)
+	appID := ctx.Query("app_id")
+	status := api.GetStatus(appID)
 
-	api.getStatus(ctx)
+	ctx.String(http.StatusOK, status)
 }
 
 func ProcessUpdate(c *gin.Context) {

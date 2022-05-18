@@ -7,6 +7,7 @@ import (
 	"log"
 	"net/http"
 	"net/url"
+	"path"
 )
 
 type Store struct {
@@ -60,9 +61,17 @@ func (s Store) GetAccessToken() string {
 func (s Store) GetStatus(appID string) string {
 	accessToken := s.GetAccessToken()
 
-	baseURL := "https://www.googleapis.com/chromewebstore/v1.1/items/" + appID
+	baseURL, err := url.Parse("https://www.googleapis.com/chromewebstore/v1.1/items/")
+	if err != nil {
+		log.Panic("Couldn't parse url")
+	}
+
+	baseURL.Path = path.Join(baseURL.Path, appID)
+
+	fmt.Println("Base url: ", baseURL.String())
+
 	client := &http.Client{}
-	req, err := http.NewRequest(http.MethodGet, baseURL, nil)
+	req, err := http.NewRequest(http.MethodGet, baseURL.String(), nil)
 	if err != nil {
 		log.Fatal(err)
 	}

@@ -62,7 +62,7 @@ func (s Store) GetStatus(appID string) string {
 
 	baseURL := "https://www.googleapis.com/chromewebstore/v1.1/items/" + appID
 	client := &http.Client{}
-	req, err := http.NewRequest("GET", baseURL, nil)
+	req, err := http.NewRequest(http.MethodGet, baseURL, nil)
 	if err != nil {
 		log.Fatal(err)
 	}

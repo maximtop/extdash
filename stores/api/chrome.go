@@ -46,7 +46,7 @@ func (s Store) AccessToken() string {
 		log.Panic(err)
 	}
 
-	fmt.Println("BODY: ", string(body))
+	fmt.Printf("BODY: %s", body)
 
 	var result map[string]interface{}
 

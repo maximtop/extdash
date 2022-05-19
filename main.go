@@ -25,8 +25,8 @@ func main() {
 
 	router.GET("/stores/:browser", stores.ProcessStatus)
 	router.POST("/stores/:browser", stores.ProcessInsert)
+	router.PUT("/stores/:browser", stores.ProcessUpdate)
 	router.POST("/stores/:browser/publish", stores.ProcessPublish)
-	router.PATCH("/stores/:browser", stores.ProcessUpdate)
 
 	log.Fatal(router.Run(":" + port))
 }

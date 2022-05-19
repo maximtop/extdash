@@ -22,6 +22,7 @@ func GetStore(clientID, clientSecret, refreshToken string) Store {
 	return s
 }
 
+// AccessToken retrieves access token
 func (s Store) AccessToken() string {
 	const baseURL = "https://accounts.google.com/o/oauth2/token"
 	data := url.Values{
@@ -58,6 +59,7 @@ func (s Store) AccessToken() string {
 	return result["access_token"].(string)
 }
 
+// Status retrieves status of the extension in the store
 func (s Store) Status(appID string) string {
 	accessToken := s.AccessToken()
 
@@ -98,6 +100,7 @@ func (s Store) Status(appID string) string {
 	return string(body)
 }
 
+// Insert uploads a package to create a new store item
 func (s Store) Insert(body io.Reader) string {
 	const baseURL = "https://www.googleapis.com/upload/chromewebstore/v1.1/items"
 
@@ -128,6 +131,48 @@ func (s Store) Insert(body io.Reader) string {
 	}
 
 	log.Println("RESULT_BODY", string(resultBody))
+
+	return string(resultBody)
+}
+
+// Update uploads new version of the package to the store
+func (s Store) Update(appID string, body io.Reader) string {
+	const baseURL = "https://www.googleapis.com/upload/chromewebstore/v1.1/items/"
+
+	accessToken := s.AccessToken()
+
+	updateURL, err := url.Parse(baseURL)
+	if err != nil {
+		log.Panic("Couldn't parse url")
+	}
+
+	updateURL.Path = path.Join(updateURL.Path, appID)
+
+	client := &http.Client{}
+
+	req, err := http.NewRequest(http.MethodPut, updateURL.String(), body)
+
+	if err != nil {
+		log.Panic(err)
+	}
+
+	req.Header.Add("Authorization", "Bearer "+accessToken)
+
+	result, err := client.Do(req)
+
+	if err != nil {
+		log.Panic(err)
+	}
+
+	defer result.Body.Close()
+
+	resultBody, err := io.ReadAll(result.Body)
+
+	if err != nil {
+		log.Panic("Wasn't able to ready body response", err)
+	}
+
+	log.Println("Update result", string(resultBody))
 
 	return string(resultBody)
 }

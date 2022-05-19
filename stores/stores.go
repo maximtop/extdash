@@ -43,7 +43,12 @@ func ProcessStatus(ctx *gin.Context) {
 }
 
 func ProcessUpdate(ctx *gin.Context) {
-	ctx.String(http.StatusOK, "process update")
+	api := getAPI(ctx)
+	appID := ctx.Query("app_id")
+
+	response := api.Update(appID, ctx.Request.Body)
+
+	ctx.String(http.StatusOK, response)
 }
 
 func ProcessPublish(ctx *gin.Context) {

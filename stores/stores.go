@@ -42,12 +42,19 @@ func ProcessStatus(ctx *gin.Context) {
 	ctx.String(http.StatusOK, status)
 }
 
-func ProcessUpdate(c *gin.Context) {
-	c.String(http.StatusOK, "process update")
+func ProcessUpdate(ctx *gin.Context) {
+	ctx.String(http.StatusOK, "process update")
 }
 
-func ProcessPublish(c *gin.Context) {
-	c.String(http.StatusOK, "process publish")
+func ProcessPublish(ctx *gin.Context) {
+	ctx.String(http.StatusOK, "process publish")
+}
+
+func ProcessInsert(ctx *gin.Context) {
+	api := getAPI(ctx)
+
+	api.Insert(ctx.Request.Body)
+	ctx.String(http.StatusOK, "process publish")
 }
 
 // status

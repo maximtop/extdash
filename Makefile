@@ -12,3 +12,7 @@ lint:
 
 format:
 	go fmt ./...
+
+# TODO REMOVE
+zip:
+	zip -rj tmp/extension.zip tmp/extension

@@ -97,3 +97,37 @@ func (s Store) Status(appID string) string {
 
 	return string(body)
 }
+
+func (s Store) Insert(body io.Reader) string {
+	const baseURL = "https://www.googleapis.com/upload/chromewebstore/v1.1/items"
+
+	accessToken := s.AccessToken()
+
+	client := &http.Client{}
+
+	req, err := http.NewRequest(http.MethodPost, baseURL, body)
+
+	if err != nil {
+		log.Panic(err)
+	}
+
+	req.Header.Add("Authorization", "Bearer "+accessToken)
+
+	result, err := client.Do(req)
+
+	if err != nil {
+		log.Panic(err)
+	}
+
+	defer result.Body.Close()
+
+	resultBody, err := io.ReadAll(result.Body)
+
+	if err != nil {
+		log.Panic("Wasn't able to ready body response", err)
+	}
+
+	log.Println("RESULT_BODY", string(resultBody))
+
+	return string(resultBody)
+}

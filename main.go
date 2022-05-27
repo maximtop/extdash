@@ -1,8 +1,8 @@
 package main
 
 import (
-	"extdash/chrome"
 	"fmt"
+	"github.com/extdash/chrome"
 	"github.com/joho/godotenv"
 	"github.com/urfave/cli/v2"
 	"log"

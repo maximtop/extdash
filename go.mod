@@ -1,4 +1,4 @@
-module extdash
+module github.com/extdash
 
 // +heroku goVersion go1.17
 go 1.18

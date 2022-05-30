@@ -1,8 +1,14 @@
 start:
-	PORT=3000 CompileDaemon -command="./extdash"
+	CompileDaemon -exclude-dir=".git" -exclude-dir="tmp"
 
 build:
 	make clean && go build
 
 clean:
-	rm extdash
+	rm -f extdash
+
+lint:
+	 golangci-lint run ./...
+
+format:
+	go fmt ./...

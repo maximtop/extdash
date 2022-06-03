@@ -117,7 +117,9 @@ func (s Store) insertInner(
 ) (result string, err error) {
 	const apiPath = "/api/v5/addons/"
 
-	fullURL := helpers.JoinURL(s.URL, apiPath)
+	// trailing slash is required for this request
+	// in go 1.19 would be possible u.JoinPath("users", "/")
+	fullURL := helpers.JoinURL(s.URL, apiPath) + "/"
 
 	file, err := os.Open(filepath)
 	if err != nil {
@@ -134,7 +136,7 @@ func (s Store) insertInner(
 	}
 	writer.Close()
 
-	req, err := http.NewRequest(http.MethodPost, fullURL, body)
+	req, err := http.NewRequest(http.MethodPost, fullURL + "/", body)
 	if err != nil {
 		return result, err
 	}

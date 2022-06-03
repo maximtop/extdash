@@ -90,7 +90,7 @@ func TestInsertInner(t *testing.T) {
 		URL: storeServer.URL,
 	}
 
-	resultStatus, err := store.insertInner(client, "resources/test.txt", idGen, currentTimeSec)
+	resultStatus, err := store.insertInner(client, "testdata/test.txt", idGen, currentTimeSec)
 	if err != nil {
 		t.Fatal(err)
 	}

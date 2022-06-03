@@ -191,7 +191,7 @@ func TestInsert(t *testing.T) {
 
 	store := Store{URL: storeServer.URL}
 
-	result, err := store.Insert(client, "./resources/test.txt")
+	result, err := store.Insert(client, "./testdata/test.txt")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -249,7 +249,7 @@ func TestUpdate(t *testing.T) {
 
 	store := Store{URL: storeServer.URL}
 
-	result, err := store.Update(client, appID, "resources/test.txt")
+	result, err := store.Update(client, appID, "testdata/test.txt")
 	if err != nil {
 		t.Fatal(err)
 	}

@@ -15,3 +15,7 @@ format:
 
 test:
 	go test ./...
+
+zip:
+	zip -r -j ./tmp/extension.zip ./tmp/extension/
+

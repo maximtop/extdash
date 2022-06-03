@@ -3,6 +3,7 @@ package firefox
 import (
 	"bytes"
 	"errors"
+	"fmt"
 	"github.com/golang-jwt/jwt/v4"
 	"github.com/google/uuid"
 	"github.com/maximtop/extdash/helpers"
@@ -16,6 +17,8 @@ import (
 	"path"
 	"time"
 )
+
+// TODO add method for signing standalone extension
 
 type Client struct {
 	ClientID     string
@@ -36,7 +39,7 @@ func genAuthHeader(clientID, clientSecret string, idGenerator func() string, cur
 
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256, jwt.MapClaims{
 		"iss": clientID,
-		"jti": idGenerator(),
+		// "jti": idGenerator(),
 		"iat": currentTimeSec,
 		"exp": currentTimeSec + expirationSec,
 	})
@@ -99,13 +102,20 @@ func (s Store) Status(c Client, appID string) (result string, err error) {
 	return s.statusInner(c, appID, genID, time.Now().Unix())
 }
 
+// insertInner extracted in the separate method for testing purposes
+// https://addons-server.readthedocs.io/en/latest/topics/api/signing.html?highlight=%2Faddons%2F#post--api-v5-addons-
+// CURL example:
+// curl -v -XPOST \
+//  -H "Authorization: JWT ${ACCESS_TOKEN}" \
+//  -F "upload=@tmp/extension.zip" \
+//  "https://addons.mozilla.org/api/v5/addons/"
 func (s Store) insertInner(
 	c Client,
 	filepath string,
 	idGen func() string,
 	currentTimeSec int64,
 ) (result string, err error) {
-	const apiPath = "/api/v5/addons/upload"
+	const apiPath = "/api/v5/addons/"
 
 	fullURL := helpers.JoinURL(s.URL, apiPath)
 
@@ -117,11 +127,12 @@ func (s Store) insertInner(
 
 	body := &bytes.Buffer{}
 	writer := multipart.NewWriter(body)
-	part, err := writer.CreateFormFile("file", file.Name())
+	part, err := writer.CreateFormFile("upload", path.Base(file.Name()))
 	_, err = io.Copy(part, file)
 	if err != nil {
 		return result, err
 	}
+	writer.Close()
 
 	req, err := http.NewRequest(http.MethodPost, fullURL, body)
 	if err != nil {
@@ -130,14 +141,13 @@ func (s Store) insertInner(
 	req.Header.Add("Authorization", genAuthHeader(c.ClientID, c.ClientSecret, idGen, currentTimeSec))
 	req.Header.Add("Content-Type", writer.FormDataContentType())
 
-	dump, _ := httputil.DumpRequest(req, false)
-	log.Println(string(dump))
+	dump, _ := httputil.DumpRequest(req, true)
+	fmt.Println(string(dump))
 	client := http.Client{}
 	res, err := client.Do(req)
 	if err != nil {
 		return result, err
 	}
-
 	defer res.Body.Close()
 
 	respBody, err := io.ReadAll(res.Body)
@@ -148,6 +158,7 @@ func (s Store) insertInner(
 	return string(respBody), err
 }
 
+// Insert uploads extension to the amo
 func (s Store) Insert(c Client, filename string) (result string, err error) {
 	return s.insertInner(c, filename, genID, time.Now().Unix())
 }

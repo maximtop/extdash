@@ -49,7 +49,7 @@ func TestStatus(t *testing.T) {
 	assert.Equal(status, actualStatus)
 }
 
-func TestInsert(t *testing.T) {
+func TestInsertInner(t *testing.T) {
 	assert := assert.New(t)
 
 	status := "test_status"
@@ -60,10 +60,10 @@ func TestInsert(t *testing.T) {
 	}
 	currentTimeSec := time.Now().Unix()
 
-	storeServer := httptest.NewServer(http.HandlerFunc(func (w http.ResponseWriter, r *http.Request) {
+	storeServer := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		assert.Equal(r.Method, http.MethodPost)
 		assert.Equal(r.Header.Get("Authorization"), genAuthHeader(clientID, clientSecret, idGen, currentTimeSec))
-		assert.Contains(r.URL.Path, "/api/v5/addons/upload")
+		assert.Contains(r.URL.Path, "/api/v5/addons")
 		file, _, err := r.FormFile("upload")
 		if err != nil {
 			t.Fatal(err)
@@ -81,8 +81,8 @@ func TestInsert(t *testing.T) {
 		}
 	}))
 
-	client := Client {
-		ClientID: clientID,
+	client := Client{
+		ClientID:     clientID,
 		ClientSecret: clientSecret,
 	}
 

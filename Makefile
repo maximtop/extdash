@@ -1,8 +1,8 @@
 start:
 	CompileDaemon -exclude-dir=".git" -exclude-dir="tmp"
 
-build:
-	make clean && go build
+build: clean
+	go build
 
 clean:
 	rm -f extdash

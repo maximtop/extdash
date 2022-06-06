@@ -1,14 +1,13 @@
 package firefox
 
 import (
-	"archive/zip"
 	"bytes"
 	"encoding/json"
 	"errors"
 	"github.com/golang-jwt/jwt/v4"
+	"github.com/maximtop/extdash/fileutil"
 	"github.com/maximtop/extdash/urlutil"
 	"io"
-	"io/ioutil"
 	"log"
 	"mime/multipart"
 	"net/http"
@@ -103,11 +102,7 @@ func (s Store) Status(c Client, appID string) (result string, err error) {
 //  -H "Authorization: JWT ${ACCESS_TOKEN}" \
 //  -F "upload=@tmp/extension.zip" \
 //  "https://addons.mozilla.org/api/v5/addons/"
-func (s Store) insertInner(
-	c Client,
-	filepath string,
-	currentTimeSec int64,
-) (result string, err error) {
+func (s Store) insertInner(c Client, filepath string, currentTimeSec int64) (result string, err error) {
 	const apiPath = "/api/v5/addons/"
 
 	// trailing slash is required for this request
@@ -160,42 +155,17 @@ type Manifest struct {
 	}
 }
 
-func readFile(file *zip.File) (result []byte, err error) {
-	reader, err := file.Open()
+func parseManifest(zipFilepath string) (result Manifest, err error) {
+	fileContent, err := fileutil.ReadFileFromZip(zipFilepath, "manifest.json")
 	if err != nil {
 		return result, err
 	}
-	defer reader.Close()
-	content, err := ioutil.ReadAll(reader)
+
+	err = json.Unmarshal(fileContent, &result)
 	if err != nil {
 		return result, err
 	}
-	return content, err
-}
-
-func parseManifest(filepath string) (result Manifest, err error) {
-	reader, err := zip.OpenReader(filepath)
-	if err != nil {
-		return result, err
-	}
-	defer reader.Close()
-
-	for _, file := range reader.File {
-		if file.Name == "manifest.json" {
-			fileContent, err := readFile(file)
-			if err != nil {
-				return result, err
-			}
-
-			err = json.Unmarshal(fileContent, &result)
-			if err != nil {
-				return result, err
-			}
-			return result, err
-		}
-	}
-
-	return Manifest{}, errors.New("Wasn't able to find manifest file in the" + filepath)
+	return result, err
 }
 
 // Insert uploads extension to the amo
@@ -203,6 +173,7 @@ func (s Store) Insert(c Client, filepath string) (result string, err error) {
 	return s.insertInner(c, filepath, time.Now().Unix())
 }
 
+// updateInner extracted in the separate function for testing purposes
 func (s Store) updateInner(c Client, filepath string, currentTimeSec int64) (result string, err error) {
 	const apiPath = "api/v5/addons"
 
@@ -257,6 +228,8 @@ func (s Store) updateInner(c Client, filepath string, currentTimeSec int64) (res
 	return string(responseBody), nil
 }
 
+// Update uploads new version of extension to the store
+// Before uploading it reads manifest.json for getting extension version and uuid
 func (s Store) Update(c Client, filepath string) (result string, err error) {
 	return s.updateInner(c, filepath, time.Now().Unix())
 }

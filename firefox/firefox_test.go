@@ -9,7 +9,7 @@ import (
 	"time"
 )
 
-func TestStatus(t *testing.T) {
+func TestStatusInner(t *testing.T) {
 	assert := assert.New(t)
 
 	clientID := "test_client_id"

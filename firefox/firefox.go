@@ -3,7 +3,6 @@ package firefox
 import (
 	"bytes"
 	"errors"
-	"fmt"
 	"github.com/golang-jwt/jwt/v4"
 	"github.com/google/uuid"
 	"github.com/maximtop/extdash/helpers"
@@ -11,7 +10,6 @@ import (
 	"log"
 	"mime/multipart"
 	"net/http"
-	"net/http/httputil"
 	"net/url"
 	"os"
 	"path"
@@ -136,15 +134,13 @@ func (s Store) insertInner(
 	}
 	writer.Close()
 
-	req, err := http.NewRequest(http.MethodPost, fullURL + "/", body)
+	req, err := http.NewRequest(http.MethodPost, fullURL+"/", body)
 	if err != nil {
 		return result, err
 	}
 	req.Header.Add("Authorization", genAuthHeader(c.ClientID, c.ClientSecret, idGen, currentTimeSec))
 	req.Header.Add("Content-Type", writer.FormDataContentType())
 
-	dump, _ := httputil.DumpRequest(req, true)
-	fmt.Println(string(dump))
 	client := http.Client{}
 	res, err := client.Do(req)
 	if err != nil {

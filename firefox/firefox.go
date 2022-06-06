@@ -6,7 +6,7 @@ import (
 	"encoding/json"
 	"errors"
 	"github.com/golang-jwt/jwt/v4"
-	"github.com/maximtop/extdash/helpers"
+	"github.com/maximtop/extdash/urlutil"
 	"io"
 	"io/ioutil"
 	"log"
@@ -29,7 +29,6 @@ type Store struct {
 	URL string
 }
 
-// FIXME make this to be client class method
 func genAuthHeader(clientID, clientSecret string, currentTimeSec int64) (result string) {
 	const expirationSec = 5 * 60
 
@@ -113,7 +112,7 @@ func (s Store) insertInner(
 
 	// trailing slash is required for this request
 	// in go 1.19 would be possible u.JoinPath("users", "/")
-	fullURL := helpers.JoinURL(s.URL, apiPath) + "/"
+	fullURL := urlutil.JoinURL(s.URL, apiPath) + "/"
 
 	file, err := os.Open(filepath)
 	if err != nil {

@@ -23,7 +23,7 @@ func main() {
 		URL: "https://addons.mozilla.org/",
 	}
 
-	res, err := store.Insert(client, "tmp/extension.zip")
+	res, err := store.Update(client, "tmp/extension.zip")
 	if err != nil {
 		log.Panic(err)
 	}

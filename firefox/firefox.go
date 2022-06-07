@@ -22,23 +22,27 @@ import (
 
 // TODO add method for signing standalone extension
 
+// Client describes client structure
 type Client struct {
 	ClientID     string
 	ClientSecret string
 }
 
+// Store type describes store structure
 type Store struct {
 	URL *url.URL
 }
 
-func NewStore(rawUrl string) Store {
-	URL, err := url.Parse(rawUrl)
+// NewStore parses rawUrl and creates instance of the Store
+func NewStore(rawURL string) Store {
+	URL, err := url.Parse(rawURL)
 	if err != nil {
 		log.Panic(err)
 	}
 	return Store{URL: URL}
 }
 
+// genAuthHeader generates jwt token used for authorization
 func genAuthHeader(clientID, clientSecret string, currentTimeSec int64) (result string) {
 	const expirationSec = 5 * 60
 
@@ -56,6 +60,30 @@ func genAuthHeader(clientID, clientSecret string, currentTimeSec int64) (result 
 	result = "JWT " + signedToken
 
 	return result
+}
+
+// Manifest describes required fields parsed from the manifest
+type Manifest struct {
+	Version      string
+	Applications struct {
+		Gecko struct {
+			ID string
+		}
+	}
+}
+
+// parseManifest reads zip archive, and extracts manifest.json out of it
+func parseManifest(zipFilepath string) (result Manifest, err error) {
+	fileContent, err := fileutil.ReadFileFromZip(zipFilepath, "manifest.json")
+	if err != nil {
+		return result, err
+	}
+
+	err = json.Unmarshal(fileContent, &result)
+	if err != nil {
+		return result, err
+	}
+	return result, err
 }
 
 // statusInner extracted in the separate function for testing purposes
@@ -150,28 +178,6 @@ func (s *Store) insertInner(c Client, filepath string, currentTimeSec int64) (re
 	}
 
 	return respBody, err
-}
-
-type Manifest struct {
-	Version      string
-	Applications struct {
-		Gecko struct {
-			ID string
-		}
-	}
-}
-
-func parseManifest(zipFilepath string) (result Manifest, err error) {
-	fileContent, err := fileutil.ReadFileFromZip(zipFilepath, "manifest.json")
-	if err != nil {
-		return result, err
-	}
-
-	err = json.Unmarshal(fileContent, &result)
-	if err != nil {
-		return result, err
-	}
-	return result, err
 }
 
 // Insert uploads extension to the amo

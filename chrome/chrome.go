@@ -15,6 +15,7 @@ import (
 	"github.com/maximtop/extdash/urlutil"
 )
 
+// Client describes structure of the client
 type Client struct {
 	URL          string
 	ClientID     string
@@ -61,18 +62,12 @@ func (c *Client) Authorize() (accessToken string, err error) {
 	return accessToken, err
 }
 
+// Store describes structure of the store
 type Store struct {
 	URL *url.URL
 }
 
-type StatusResponse struct {
-	Kind        string
-	ID          string
-	PublicKey   string
-	UploadState string
-	CrxVersion  string
-}
-
+// NewStore parses url and creates new store instance
 func NewStore(rawURL string) Store {
 	URL, err := url.Parse(rawURL)
 	if err != nil {
@@ -80,6 +75,15 @@ func NewStore(rawURL string) Store {
 	}
 
 	return Store{URL: URL}
+}
+
+// StatusResponse describes status response fields
+type StatusResponse struct {
+	Kind        string
+	ID          string
+	PublicKey   string
+	UploadState string
+	CrxVersion  string
 }
 
 // Status retrieves status of the extension in the store
@@ -125,6 +129,7 @@ func (s *Store) Status(c Client, appID string) (result StatusResponse, err error
 	return result, err
 }
 
+// InsertResponse describes structure returned on the insert request
 type InsertResponse struct {
 	Kind        string
 	ID          string
@@ -176,6 +181,7 @@ func (s *Store) Insert(c Client, filePath string) (result InsertResponse, err er
 	return result, err
 }
 
+// UpdateResponse describes response returned on update request
 type UpdateResponse struct {
 	Kind        string `json:"kind"`
 	ID          string `json:"id"`
@@ -231,6 +237,7 @@ func (s *Store) Update(c Client, appID, filePath string) (result UpdateResponse,
 	return result, err
 }
 
+// PublishResponse describes response returned on publish request
 type PublishResponse struct {
 	Kind         string   `json:"kind"`
 	ItemID       string   `json:"item_id"`

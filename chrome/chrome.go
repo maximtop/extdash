@@ -70,7 +70,7 @@ type StatusResponse struct {
 
 // Status retrieves status of the extension in the store
 func (s *Store) Status(c Client, appID string) (result StatusResponse, err error) {
-	const URL = "chromewebstore/v1.1/items"
+	const apiPath = "chromewebstore/v1.1/items"
 
 	accessToken, err := c.Authorize()
 	if err != nil {
@@ -83,7 +83,7 @@ func (s *Store) Status(c Client, appID string) (result StatusResponse, err error
 		return result, err
 	}
 
-	baseURL.Path = path.Join(baseURL.Path, URL, appID)
+	baseURL.Path = path.Join(baseURL.Path, apiPath, appID)
 
 	client := &http.Client{}
 	var req *http.Request
@@ -126,7 +126,7 @@ type InsertResponse struct {
 
 // Insert uploads a package to create a new store item
 func (s *Store) Insert(c Client, filePath string) (result InsertResponse, err error) {
-	const URL = "upload/chromewebstore/v1.1/items"
+	const apiPath = "upload/chromewebstore/v1.1/items"
 
 	accessToken, err := c.Authorize()
 	if err != nil {
@@ -137,7 +137,7 @@ func (s *Store) Insert(c Client, filePath string) (result InsertResponse, err er
 	if err != nil {
 		return result, err
 	}
-	baseURL.Path = path.Join(baseURL.Path, URL)
+	baseURL.Path = path.Join(baseURL.Path, apiPath)
 
 	body, err := os.Open(filePath)
 	if err != nil {
@@ -182,7 +182,7 @@ type UpdateResponse struct {
 
 // Update uploads new version of the package to the store
 func (s *Store) Update(c Client, appID, filePath string) (result UpdateResponse, err error) {
-	const URL = "upload/chromewebstore/v1.1/items/"
+	const apiPath = "upload/chromewebstore/v1.1/items/"
 
 	accessToken, err := c.Authorize()
 	if err != nil {
@@ -194,7 +194,7 @@ func (s *Store) Update(c Client, appID, filePath string) (result UpdateResponse,
 		return result, err
 	}
 
-	updateURL.Path = path.Join(updateURL.Path, URL, appID)
+	updateURL.Path = path.Join(updateURL.Path, apiPath, appID)
 
 	client := &http.Client{}
 
@@ -244,14 +244,14 @@ type PublishResponse struct {
 
 // Publish publishes app to the store
 func (s *Store) Publish(c Client, appID string) (result PublishResponse, err error) {
-	const baseURL = "chromewebstore/v1.1/items"
+	const apiPath = "chromewebstore/v1.1/items"
 
 	updateURL, err := url.Parse(s.URL)
 	if err != nil {
 		return result, err
 	}
 
-	updateURL.Path = path.Join(updateURL.Path, baseURL, appID, "publish")
+	updateURL.Path = path.Join(updateURL.Path, apiPath, appID, "publish")
 
 	accessToken, err := c.Authorize()
 	if err != nil {

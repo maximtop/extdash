@@ -25,7 +25,15 @@ type Client struct {
 }
 
 type Store struct {
-	URL string
+	URL *url.URL
+}
+
+func NewStore(rawUrl string) Store {
+	URL, err := url.Parse(rawUrl)
+	if err != nil {
+		log.Panic(err)
+	}
+	return Store{URL: URL}
 }
 
 func genAuthHeader(clientID, clientSecret string, currentTimeSec int64) (result string) {
@@ -49,15 +57,10 @@ func genAuthHeader(clientID, clientSecret string, currentTimeSec int64) (result 
 
 // statusInner extracted in the separate function for testing purposes
 func (s *Store) statusInner(c Client, appID string, currentTimeSec int64) (result []byte, err error) {
-	URL := "api/v5/addons/addon/"
+	apiPath := "api/v5/addons/addon/"
 
-	baseURL, err := url.Parse(s.URL)
-	if err != nil {
-		return result, err
-	}
-
-	baseURL.Path = path.Join(baseURL.Path, URL, appID)
-	req, err := http.NewRequest(http.MethodGet, baseURL.String(), nil)
+	apiURL := urlutil.JoinURL(s.URL, apiPath, appID)
+	req, err := http.NewRequest(http.MethodGet, apiURL, nil)
 	if err != nil {
 		return result, err
 	}
@@ -107,7 +110,7 @@ func (s *Store) insertInner(c Client, filepath string, currentTimeSec int64) (re
 
 	// trailing slash is required for this request
 	// in go 1.19 would be possible u.JoinPath("users", "/")
-	fullURL := urlutil.JoinURL(s.URL, apiPath) + "/"
+	apiUrl := urlutil.JoinURL(s.URL, apiPath) + "/"
 
 	file, err := os.Open(filepath)
 	if err != nil {
@@ -124,7 +127,7 @@ func (s *Store) insertInner(c Client, filepath string, currentTimeSec int64) (re
 	}
 	writer.Close()
 
-	req, err := http.NewRequest(http.MethodPost, fullURL+"/", body)
+	req, err := http.NewRequest(http.MethodPost, apiUrl, body)
 	if err != nil {
 		return result, err
 	}
@@ -188,12 +191,7 @@ func (s *Store) updateInner(c Client, filepath string, currentTimeSec int64) (re
 	}
 	defer file.Close()
 
-	baseURL, err := url.Parse(s.URL)
-	if err != nil {
-		return result, err
-	}
-
-	baseURL.Path = path.Join(baseURL.Path, apiPath, manifest.Applications.Gecko.ID, "versions", manifest.Version)
+	apiURL := urlutil.JoinURL(s.URL, apiPath, manifest.Applications.Gecko.ID, "versions", manifest.Version) + "/"
 
 	body := &bytes.Buffer{}
 	writer := multipart.NewWriter(body)
@@ -205,7 +203,7 @@ func (s *Store) updateInner(c Client, filepath string, currentTimeSec int64) (re
 	writer.Close()
 
 	client := http.Client{}
-	req, err := http.NewRequest(http.MethodPut, baseURL.String()+"/", body)
+	req, err := http.NewRequest(http.MethodPut, apiURL, body)
 	if err != nil {
 		return result, err
 	}

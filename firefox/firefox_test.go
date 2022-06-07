@@ -35,7 +35,7 @@ func TestStatusInner(t *testing.T) {
 		ClientSecret: clientSecret,
 	}
 
-	store := Store{URL: storeServer.URL}
+	store := NewStore(storeServer.URL)
 
 	actualStatus, err := store.statusInner(client, appID, currentTimeSec)
 
@@ -43,7 +43,7 @@ func TestStatusInner(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	assert.Equal(status, actualStatus)
+	assert.Equal(status, string(actualStatus))
 }
 
 func TestInsertInner(t *testing.T) {
@@ -80,16 +80,14 @@ func TestInsertInner(t *testing.T) {
 		ClientSecret: clientSecret,
 	}
 
-	store := Store{
-		URL: storeServer.URL,
-	}
+	store := NewStore(storeServer.URL)
 
 	resultStatus, err := store.insertInner(client, "testdata/test.txt", currentTimeSec)
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	assert.Equal(status, resultStatus)
+	assert.Equal(status, string(resultStatus))
 }
 
 func TestUpdateInner(t *testing.T) {
@@ -121,14 +119,12 @@ func TestUpdateInner(t *testing.T) {
 		ClientSecret: clientSecret,
 	}
 
-	store := Store{
-		URL: storeServer.URL,
-	}
+	store := NewStore(storeServer.URL)
 
 	actualResponse, err := store.updateInner(client, "testdata/extension.zip", currentTimeSec)
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	assert.Equal(response, actualResponse)
+	assert.Equal(response, string(actualResponse))
 }

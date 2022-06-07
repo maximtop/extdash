@@ -4,12 +4,12 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"github.com/maximtop/extdash/urlutil"
 	"io"
 	"log"
 	"net/http"
 	"net/url"
 	"os"
-	"path"
 )
 
 type Client struct {
@@ -59,7 +59,7 @@ func (c *Client) Authorize() (accessToken string, err error) {
 }
 
 type Store struct {
-	URL string
+	URL *url.URL
 }
 
 type StatusResponse struct {
@@ -70,26 +70,28 @@ type StatusResponse struct {
 	CrxVersion  string
 }
 
+func NewStore(rawURL string) Store {
+	URL, err := url.Parse(rawURL)
+	if err != nil {
+		log.Panic("wasn't able to parse url", err)
+	}
+
+	return Store{URL: URL}
+}
+
 // Status retrieves status of the extension in the store
 func (s *Store) Status(c Client, appID string) (result StatusResponse, err error) {
 	const apiPath = "chromewebstore/v1.1/items"
+	apiURL := urlutil.JoinURL(s.URL, apiPath, appID)
 
 	accessToken, err := c.Authorize()
 	if err != nil {
 		return result, err
 	}
 
-	// TODO (maximtop): move url parsing to the store constructor
-	baseURL, err := url.Parse(s.URL)
-	if err != nil {
-		return result, err
-	}
-
-	baseURL.Path = path.Join(baseURL.Path, apiPath, appID)
-
 	client := &http.Client{}
 	var req *http.Request
-	req, err = http.NewRequest(http.MethodGet, baseURL.String(), nil)
+	req, err = http.NewRequest(http.MethodGet, apiURL, nil)
 	if err != nil {
 		return result, err
 	}
@@ -129,17 +131,12 @@ type InsertResponse struct {
 // Insert uploads a package to create a new store item
 func (s *Store) Insert(c Client, filePath string) (result InsertResponse, err error) {
 	const apiPath = "upload/chromewebstore/v1.1/items"
+	apiURL := urlutil.JoinURL(s.URL, apiPath)
 
 	accessToken, err := c.Authorize()
 	if err != nil {
 		return
 	}
-
-	baseURL, err := url.Parse(s.URL)
-	if err != nil {
-		return result, err
-	}
-	baseURL.Path = path.Join(baseURL.Path, apiPath)
 
 	body, err := os.Open(filePath)
 	if err != nil {
@@ -147,7 +144,7 @@ func (s *Store) Insert(c Client, filePath string) (result InsertResponse, err er
 	}
 
 	client := &http.Client{}
-	req, err := http.NewRequest(http.MethodPost, baseURL.String(), body)
+	req, err := http.NewRequest(http.MethodPost, apiURL, body)
 	if err != nil {
 		return result, err
 	}
@@ -185,18 +182,12 @@ type UpdateResponse struct {
 // Update uploads new version of the package to the store
 func (s *Store) Update(c Client, appID, filePath string) (result UpdateResponse, err error) {
 	const apiPath = "upload/chromewebstore/v1.1/items/"
+	apiURL := urlutil.JoinURL(s.URL, apiPath, appID)
 
 	accessToken, err := c.Authorize()
 	if err != nil {
 		return result, err
 	}
-
-	updateURL, err := url.Parse(s.URL)
-	if err != nil {
-		return result, err
-	}
-
-	updateURL.Path = path.Join(updateURL.Path, apiPath, appID)
 
 	client := &http.Client{}
 
@@ -205,7 +196,7 @@ func (s *Store) Update(c Client, appID, filePath string) (result UpdateResponse,
 		return result, err
 	}
 
-	req, err := http.NewRequest(http.MethodPut, updateURL.String(), body)
+	req, err := http.NewRequest(http.MethodPut, apiURL, body)
 	if err != nil {
 		return result, err
 	}
@@ -247,13 +238,7 @@ type PublishResponse struct {
 // Publish publishes app to the store
 func (s *Store) Publish(c Client, appID string) (result PublishResponse, err error) {
 	const apiPath = "chromewebstore/v1.1/items"
-
-	updateURL, err := url.Parse(s.URL)
-	if err != nil {
-		return result, err
-	}
-
-	updateURL.Path = path.Join(updateURL.Path, apiPath, appID, "publish")
+	apiURL := urlutil.JoinURL(s.URL, apiPath, appID, "publish")
 
 	accessToken, err := c.Authorize()
 	if err != nil {
@@ -262,7 +247,7 @@ func (s *Store) Publish(c Client, appID string) (result PublishResponse, err err
 
 	client := &http.Client{}
 
-	req, err := http.NewRequest(http.MethodPost, updateURL.String(), nil)
+	req, err := http.NewRequest(http.MethodPost, apiURL, nil)
 	if err != nil {
 		return result, err
 	}

@@ -126,7 +126,7 @@ func TestStatus(t *testing.T) {
 
 	defer storeServer.Close()
 
-	store := Store{URL: storeServer.URL}
+	store := NewStore(storeServer.URL)
 
 	actualStatus, err := store.Status(client, appID)
 
@@ -189,7 +189,7 @@ func TestInsert(t *testing.T) {
 
 	defer storeServer.Close()
 
-	store := Store{URL: storeServer.URL}
+	store := NewStore(storeServer.URL)
 
 	result, err := store.Insert(client, "./testdata/test.txt")
 	if err != nil {
@@ -247,7 +247,7 @@ func TestUpdate(t *testing.T) {
 	}))
 	defer storeServer.Close()
 
-	store := Store{URL: storeServer.URL}
+	store := NewStore(storeServer.URL)
 
 	result, err := store.Update(client, appID, "testdata/test.txt")
 	if err != nil {
@@ -300,7 +300,7 @@ func TestPublish(t *testing.T) {
 	}))
 	defer storeServer.Close()
 
-	store := Store{URL: storeServer.URL}
+	store := NewStore(storeServer.URL)
 
 	result, err := store.Publish(client, appID)
 	if err != nil {

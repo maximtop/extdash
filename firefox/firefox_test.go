@@ -38,7 +38,10 @@ func TestStatus(t *testing.T) {
 	}))
 	defer storeServer.Close()
 
-	store := firefox.NewStore(storeServer.URL)
+	store, err := firefox.NewStore(storeServer.URL)
+	if err != nil {
+		t.Fatal(err)
+	}
 
 	actualStatus, err := store.Status(client, appID)
 
@@ -83,7 +86,10 @@ func TestInsert(t *testing.T) {
 		}
 	}))
 
-	store := firefox.NewStore(storeServer.URL)
+	store, err := firefox.NewStore(storeServer.URL)
+	if err != nil {
+		t.Fatal(err)
+	}
 
 	resultStatus, err := store.Insert(client, "testdata/test.txt")
 	if err != nil {
@@ -122,7 +128,10 @@ func TestUpdate(t *testing.T) {
 		}
 	}))
 
-	store := firefox.NewStore(storeServer.URL)
+	store, err := firefox.NewStore(storeServer.URL)
+	if err != nil {
+		t.Fatal(err)
+	}
 
 	actualResponse, err := store.Update(client, "testdata/extension.zip")
 	if err != nil {

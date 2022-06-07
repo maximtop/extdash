@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"encoding/json"
 	"errors"
+	"fmt"
 	"io"
 	"log"
 	"mime/multipart"
@@ -78,12 +79,12 @@ type Store struct {
 }
 
 // NewStore parses rawUrl and creates instance of the Store
-func NewStore(rawURL string) Store {
+func NewStore(rawURL string) (s Store, err error) {
 	URL, err := url.Parse(rawURL)
 	if err != nil {
-		log.Panic(err)
+		return Store{}, fmt.Errorf("wasn't able to parse url due to: %w", err)
 	}
-	return Store{URL: URL}
+	return Store{URL: URL}, nil
 }
 
 // Manifest describes required fields parsed from the manifest

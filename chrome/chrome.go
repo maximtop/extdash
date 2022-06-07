@@ -68,13 +68,13 @@ type Store struct {
 }
 
 // NewStore parses url and creates new store instance
-func NewStore(rawURL string) Store {
+func NewStore(rawURL string) (s Store, err error) {
 	URL, err := url.Parse(rawURL)
 	if err != nil {
-		log.Panic("wasn't able to parse url", err)
+		return Store{}, fmt.Errorf("wasn't able to parse url %w", err)
 	}
 
-	return Store{URL: URL}
+	return Store{URL: URL}, nil
 }
 
 // StatusResponse describes status response fields

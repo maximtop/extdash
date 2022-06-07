@@ -19,7 +19,7 @@ type Client struct {
 }
 
 // Authorize retrieves access token
-func (c Client) Authorize() (accessToken string, err error) {
+func (c *Client) Authorize() (accessToken string, err error) {
 	data := url.Values{
 		"client_id":     {c.ClientID},
 		"client_secret": {c.ClientSecret},
@@ -69,7 +69,7 @@ type StatusResponse struct {
 }
 
 // Status retrieves status of the extension in the store
-func (s Store) Status(c Client, appID string) (result StatusResponse, err error) {
+func (s *Store) Status(c Client, appID string) (result StatusResponse, err error) {
 	const URL = "chromewebstore/v1.1/items"
 
 	accessToken, err := c.Authorize()
@@ -77,7 +77,7 @@ func (s Store) Status(c Client, appID string) (result StatusResponse, err error)
 		return result, err
 	}
 
-	// TODO(maximtop): !!move url parsing to the store constructor
+	// TODO (maximtop): move url parsing to the store constructor
 	baseURL, err := url.Parse(s.URL)
 	if err != nil {
 		return result, err
@@ -125,7 +125,7 @@ type InsertResponse struct {
 }
 
 // Insert uploads a package to create a new store item
-func (s Store) Insert(c Client, filePath string) (result InsertResponse, err error) {
+func (s *Store) Insert(c Client, filePath string) (result InsertResponse, err error) {
 	const URL = "upload/chromewebstore/v1.1/items"
 
 	accessToken, err := c.Authorize()
@@ -181,7 +181,7 @@ type UpdateResponse struct {
 }
 
 // Update uploads new version of the package to the store
-func (s Store) Update(c Client, appID, filePath string) (result UpdateResponse, err error) {
+func (s *Store) Update(c Client, appID, filePath string) (result UpdateResponse, err error) {
 	const URL = "upload/chromewebstore/v1.1/items/"
 
 	accessToken, err := c.Authorize()
@@ -243,7 +243,7 @@ type PublishResponse struct {
 }
 
 // Publish publishes app to the store
-func (s Store) Publish(c Client, appID string) (result PublishResponse, err error) {
+func (s *Store) Publish(c Client, appID string) (result PublishResponse, err error) {
 	const baseURL = "chromewebstore/v1.1/items"
 
 	updateURL, err := url.Parse(s.URL)

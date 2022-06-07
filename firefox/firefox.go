@@ -48,7 +48,7 @@ func genAuthHeader(clientID, clientSecret string, currentTimeSec int64) (result 
 }
 
 // statusInner extracted in the separate function for testing purposes
-func (s Store) statusInner(c Client, appID string, currentTimeSec int64) (result string, err error) {
+func (s *Store) statusInner(c Client, appID string, currentTimeSec int64) (result string, err error) {
 	URL := "api/v5/addons/addon/"
 
 	baseURL, err := url.Parse(s.URL)
@@ -91,7 +91,7 @@ func (s Store) statusInner(c Client, appID string, currentTimeSec int64) (result
 }
 
 // Status returns status of the extension by appID
-func (s Store) Status(c Client, appID string) (result string, err error) {
+func (s *Store) Status(c Client, appID string) (result string, err error) {
 	return s.statusInner(c, appID, time.Now().Unix())
 }
 
@@ -102,7 +102,7 @@ func (s Store) Status(c Client, appID string) (result string, err error) {
 //  -H "Authorization: JWT ${ACCESS_TOKEN}" \
 //  -F "upload=@tmp/extension.zip" \
 //  "https://addons.mozilla.org/api/v5/addons/"
-func (s Store) insertInner(c Client, filepath string, currentTimeSec int64) (result string, err error) {
+func (s *Store) insertInner(c Client, filepath string, currentTimeSec int64) (result string, err error) {
 	const apiPath = "/api/v5/addons/"
 
 	// trailing slash is required for this request
@@ -169,12 +169,12 @@ func parseManifest(zipFilepath string) (result Manifest, err error) {
 }
 
 // Insert uploads extension to the amo
-func (s Store) Insert(c Client, filepath string) (result string, err error) {
+func (s *Store) Insert(c Client, filepath string) (result string, err error) {
 	return s.insertInner(c, filepath, time.Now().Unix())
 }
 
 // updateInner extracted in the separate function for testing purposes
-func (s Store) updateInner(c Client, filepath string, currentTimeSec int64) (result string, err error) {
+func (s *Store) updateInner(c Client, filepath string, currentTimeSec int64) (result string, err error) {
 	const apiPath = "api/v5/addons"
 
 	manifest, err := parseManifest(filepath)
@@ -230,6 +230,6 @@ func (s Store) updateInner(c Client, filepath string, currentTimeSec int64) (res
 
 // Update uploads new version of extension to the store
 // Before uploading it reads manifest.json for getting extension version and uuid
-func (s Store) Update(c Client, filepath string) (result string, err error) {
+func (s *Store) Update(c Client, filepath string) (result string, err error) {
 	return s.updateInner(c, filepath, time.Now().Unix())
 }

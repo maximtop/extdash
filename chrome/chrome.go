@@ -3,6 +3,7 @@ package chrome
 import (
 	"encoding/json"
 	"errors"
+	"fmt"
 	"io"
 	"log"
 	"net/http"
@@ -38,9 +39,10 @@ func (c *Client) Authorize() (accessToken string, err error) {
 	body, err := io.ReadAll(res.Body)
 
 	if err != nil {
-		return accessToken, err
+		return accessToken, fmt.Errorf("[Authorize] %w", err)
 	}
 
+	// TODO (maximtop) describe response with type
 	var result map[string]interface{}
 
 	err = json.Unmarshal(body, &result)

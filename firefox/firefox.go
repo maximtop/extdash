@@ -24,8 +24,52 @@ import (
 
 // Client describes client structure
 type Client struct {
+	clientID     string
+	clientSecret string
+	now          func() int64
+}
+
+type ClientConfig struct {
 	ClientID     string
 	ClientSecret string
+	Now          func() int64
+}
+
+// NewClient creates instance of the Client
+func NewClient(config ClientConfig) Client {
+	c := config
+
+	if c.Now == nil {
+		c.Now = func() int64 {
+			return time.Now().Unix()
+		}
+	}
+
+	return Client{
+		clientID:     c.ClientID,
+		clientSecret: c.ClientSecret,
+		now:          c.Now,
+	}
+}
+
+// GenAuthHeader generates header used for authorization
+func (c Client) GenAuthHeader() string {
+	const expirationSec = 5 * 60
+
+	currentTimeSec := c.now()
+
+	token := jwt.NewWithClaims(jwt.SigningMethodHS256, jwt.MapClaims{
+		"iss": c.clientID,
+		"iat": currentTimeSec,
+		"exp": currentTimeSec + expirationSec,
+	})
+
+	signedToken, err := token.SignedString([]byte(c.clientSecret))
+	if err != nil {
+		log.Panicln(err)
+	}
+
+	return "JWT " + signedToken
 }
 
 // Store type describes store structure
@@ -40,26 +84,6 @@ func NewStore(rawURL string) Store {
 		log.Panic(err)
 	}
 	return Store{URL: URL}
-}
-
-// genAuthHeader generates jwt token used for authorization
-func genAuthHeader(clientID, clientSecret string, currentTimeSec int64) (result string) {
-	const expirationSec = 5 * 60
-
-	token := jwt.NewWithClaims(jwt.SigningMethodHS256, jwt.MapClaims{
-		"iss": clientID,
-		"iat": currentTimeSec,
-		"exp": currentTimeSec + expirationSec,
-	})
-
-	signedToken, err := token.SignedString([]byte(clientSecret))
-	if err != nil {
-		log.Panicln(err)
-	}
-
-	result = "JWT " + signedToken
-
-	return result
 }
 
 // Manifest describes required fields parsed from the manifest
@@ -86,8 +110,8 @@ func parseManifest(zipFilepath string) (result Manifest, err error) {
 	return result, err
 }
 
-// statusInner extracted in the separate function for testing purposes
-func (s *Store) statusInner(c Client, appID string, currentTimeSec int64) (result []byte, err error) {
+// Status returns status of the extension by appID
+func (s *Store) Status(c Client, appID string) (result []byte, err error) {
 	apiPath := "api/v5/addons/addon/"
 
 	apiURL := urlutil.JoinURL(s.URL, apiPath, appID)
@@ -96,7 +120,7 @@ func (s *Store) statusInner(c Client, appID string, currentTimeSec int64) (resul
 		return result, err
 	}
 
-	authHeader := genAuthHeader(c.ClientID, c.ClientSecret, currentTimeSec)
+	authHeader := c.GenAuthHeader()
 	if err != nil {
 		return result, err
 	}
@@ -124,24 +148,19 @@ func (s *Store) statusInner(c Client, appID string, currentTimeSec int64) (resul
 	return body, err
 }
 
-// Status returns status of the extension by appID
-func (s *Store) Status(c Client, appID string) (result []byte, err error) {
-	return s.statusInner(c, appID, time.Now().Unix())
-}
-
-// insertInner extracted in the separate method for testing purposes
+// Insert uploads extension to the amo
 // https://addons-server.readthedocs.io/en/latest/topics/api/signing.html?highlight=%2Faddons%2F#post--api-v5-addons-
 // CURL example:
 // curl -v -XPOST \
 //  -H "Authorization: JWT ${ACCESS_TOKEN}" \
 //  -F "upload=@tmp/extension.zip" \
 //  "https://addons.mozilla.org/api/v5/addons/"
-func (s *Store) insertInner(c Client, filepath string, currentTimeSec int64) (result []byte, err error) {
+func (s *Store) Insert(c Client, filepath string) (result []byte, err error) {
 	const apiPath = "/api/v5/addons/"
 
 	// trailing slash is required for this request
 	// in go 1.19 would be possible u.JoinPath("users", "/")
-	apiUrl := urlutil.JoinURL(s.URL, apiPath) + "/"
+	apiURL := urlutil.JoinURL(s.URL, apiPath) + "/"
 
 	file, err := os.Open(filepath)
 	if err != nil {
@@ -156,13 +175,17 @@ func (s *Store) insertInner(c Client, filepath string, currentTimeSec int64) (re
 	if err != nil {
 		return result, err
 	}
-	writer.Close()
 
-	req, err := http.NewRequest(http.MethodPost, apiUrl, body)
+	err = writer.Close()
+	if err != nil {
+		return nil, err
+	}
+
+	req, err := http.NewRequest(http.MethodPost, apiURL, body)
 	if err != nil {
 		return result, err
 	}
-	req.Header.Add("Authorization", genAuthHeader(c.ClientID, c.ClientSecret, currentTimeSec))
+	req.Header.Add("Authorization", c.GenAuthHeader())
 	req.Header.Add("Content-Type", writer.FormDataContentType())
 
 	client := http.Client{}
@@ -180,13 +203,9 @@ func (s *Store) insertInner(c Client, filepath string, currentTimeSec int64) (re
 	return respBody, err
 }
 
-// Insert uploads extension to the amo
-func (s *Store) Insert(c Client, filepath string) (result []byte, err error) {
-	return s.insertInner(c, filepath, time.Now().Unix())
-}
-
-// updateInner extracted in the separate function for testing purposes
-func (s *Store) updateInner(c Client, filepath string, currentTimeSec int64) (result []byte, err error) {
+// Update uploads new version of extension to the store
+// Before uploading it reads manifest.json for getting extension version and uuid
+func (s *Store) Update(c Client, filepath string) (result []byte, err error) {
 	const apiPath = "api/v5/addons"
 
 	manifest, err := parseManifest(filepath)
@@ -209,7 +228,11 @@ func (s *Store) updateInner(c Client, filepath string, currentTimeSec int64) (re
 	if err != nil {
 		return result, err
 	}
-	writer.Close()
+
+	err = writer.Close()
+	if err != nil {
+		return nil, err
+	}
 
 	client := http.Client{}
 	req, err := http.NewRequest(http.MethodPut, apiURL, body)
@@ -217,7 +240,7 @@ func (s *Store) updateInner(c Client, filepath string, currentTimeSec int64) (re
 		return result, err
 	}
 
-	authHeader := genAuthHeader(c.ClientID, c.ClientSecret, currentTimeSec)
+	authHeader := c.GenAuthHeader()
 	req.Header.Add("Authorization", authHeader)
 	req.Header.Add("Content-Type", writer.FormDataContentType())
 
@@ -233,10 +256,4 @@ func (s *Store) updateInner(c Client, filepath string, currentTimeSec int64) (re
 	}
 
 	return responseBody, nil
-}
-
-// Update uploads new version of extension to the store
-// Before uploading it reads manifest.json for getting extension version and uuid
-func (s *Store) Update(c Client, filepath string) (result []byte, err error) {
-	return s.updateInner(c, filepath, time.Now().Unix())
 }

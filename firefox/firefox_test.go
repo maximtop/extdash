@@ -1,6 +1,7 @@
-package firefox
+package firefox_test
 
 import (
+	"github.com/maximtop/extdash/firefox"
 	"io"
 	"net/http"
 	"net/http/httptest"
@@ -12,19 +13,23 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-func TestStatusInner(t *testing.T) {
+func TestStatus(t *testing.T) {
 	assert := assert.New(t)
 
 	clientID := "test_client_id"
 	clientSecret := "test_client_secret"
 	appID := "test_app_id"
 	status := "test_status"
-	currentTimeSec := time.Now().Unix()
+	now := func() int64 {
+		return 1
+	}
+
+	client := firefox.NewClient(firefox.ClientConfig{ClientID: clientID, ClientSecret: clientSecret, Now: now})
 
 	storeServer := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		assert.Equal(r.Method, http.MethodGet)
 		assert.Contains(r.URL.Path, appID)
-		assert.Equal(r.Header.Get("Authorization"), genAuthHeader(clientID, clientSecret, currentTimeSec))
+		assert.Equal(r.Header.Get("Authorization"), client.GenAuthHeader())
 
 		_, err := w.Write([]byte(status))
 		if err != nil {
@@ -33,14 +38,9 @@ func TestStatusInner(t *testing.T) {
 	}))
 	defer storeServer.Close()
 
-	client := Client{
-		ClientID:     clientID,
-		ClientSecret: clientSecret,
-	}
+	store := firefox.NewStore(storeServer.URL)
 
-	store := NewStore(storeServer.URL)
-
-	actualStatus, err := store.statusInner(client, appID, currentTimeSec)
+	actualStatus, err := store.Status(client, appID)
 
 	if err != nil {
 		t.Fatal(err)
@@ -49,17 +49,22 @@ func TestStatusInner(t *testing.T) {
 	assert.Equal(status, string(actualStatus))
 }
 
-func TestInsertInner(t *testing.T) {
+func TestInsert(t *testing.T) {
 	assert := assert.New(t)
 
 	status := "test_status"
 	clientID := "test_client_id"
 	clientSecret := "test_client_secret"
 	currentTimeSec := time.Now().Unix()
+	now := func() int64 {
+		return currentTimeSec
+	}
+
+	client := firefox.NewClient(firefox.ClientConfig{ClientID: clientID, ClientSecret: clientSecret, Now: now})
 
 	storeServer := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		assert.Equal(r.Method, http.MethodPost)
-		assert.Equal(r.Header.Get("Authorization"), genAuthHeader(clientID, clientSecret, currentTimeSec))
+		assert.Equal(r.Header.Get("Authorization"), client.GenAuthHeader())
 		assert.Contains(r.URL.Path, "/api/v5/addons")
 		file, _, err := r.FormFile("upload")
 		if err != nil {
@@ -78,14 +83,9 @@ func TestInsertInner(t *testing.T) {
 		}
 	}))
 
-	client := Client{
-		ClientID:     clientID,
-		ClientSecret: clientSecret,
-	}
+	store := firefox.NewStore(storeServer.URL)
 
-	store := NewStore(storeServer.URL)
-
-	resultStatus, err := store.insertInner(client, "testdata/test.txt", currentTimeSec)
+	resultStatus, err := store.Insert(client, "testdata/test.txt")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -93,17 +93,22 @@ func TestInsertInner(t *testing.T) {
 	assert.Equal(status, string(resultStatus))
 }
 
-func TestUpdateInner(t *testing.T) {
+func TestUpdate(t *testing.T) {
 	assert := assert.New(t)
 	response := "test_response"
 	clientID := "test_client_id"
 	clientSecret := "test_client_secret"
 	currentTimeSec := time.Now().Unix()
+	now := func() int64 {
+		return currentTimeSec
+	}
+
+	client := firefox.NewClient(firefox.ClientConfig{ClientID: clientID, ClientSecret: clientSecret, Now: now})
 
 	storeServer := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		assert.Equal(http.MethodPut, r.Method)
 		assert.Contains(r.URL.Path, "api/v5/addons/sample-for-dashboard8@adguard.com/versions/0.0.3")
-		assert.Equal(r.Header.Get("Authorization"), genAuthHeader(clientID, clientSecret, currentTimeSec))
+		assert.Equal(r.Header.Get("Authorization"), client.GenAuthHeader())
 		file, header, err := r.FormFile("upload")
 		if err != nil {
 			t.Fatal(err)
@@ -117,14 +122,9 @@ func TestUpdateInner(t *testing.T) {
 		}
 	}))
 
-	client := Client{
-		ClientID:     clientID,
-		ClientSecret: clientSecret,
-	}
+	store := firefox.NewStore(storeServer.URL)
 
-	store := NewStore(storeServer.URL)
-
-	actualResponse, err := store.updateInner(client, "testdata/extension.zip", currentTimeSec)
+	actualResponse, err := store.Update(client, "testdata/extension.zip")
 	if err != nil {
 		t.Fatal(err)
 	}

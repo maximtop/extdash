@@ -27,10 +27,10 @@ func main() {
 	}
 	chromeStore := chrome.NewStore("https://www.googleapis.com")
 
-	firefoxClient := firefox.Client{
+	firefoxClient := firefox.NewClient(firefox.ClientConfig{
 		ClientID:     os.Getenv("FIREFOX_CLIENT_ID"),
 		ClientSecret: os.Getenv("FIREFOX_CLIENT_SECRET"),
-	}
+	})
 	firefoxStore := firefox.NewStore("https://addons.mozilla.org/")
 
 	app := &cli.App{

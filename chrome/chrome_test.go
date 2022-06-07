@@ -2,11 +2,14 @@ package chrome
 
 import (
 	"encoding/json"
-	"github.com/stretchr/testify/assert"
 	"io"
 	"net/http"
 	"net/http/httptest"
 	"testing"
+)
+
+import (
+	"github.com/stretchr/testify/assert"
 )
 
 func createAuthServer(t *testing.T, accessToken string) *httptest.Server {

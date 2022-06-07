@@ -4,9 +4,6 @@ import (
 	"bytes"
 	"encoding/json"
 	"errors"
-	"github.com/golang-jwt/jwt/v4"
-	"github.com/maximtop/extdash/fileutil"
-	"github.com/maximtop/extdash/urlutil"
 	"io"
 	"log"
 	"mime/multipart"
@@ -15,6 +12,12 @@ import (
 	"os"
 	"path"
 	"time"
+)
+
+import (
+	"github.com/golang-jwt/jwt/v4"
+	"github.com/maximtop/extdash/fileutil"
+	"github.com/maximtop/extdash/urlutil"
 )
 
 // TODO add method for signing standalone extension

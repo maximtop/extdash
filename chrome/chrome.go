@@ -4,12 +4,15 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"github.com/maximtop/extdash/urlutil"
 	"io"
 	"log"
 	"net/http"
 	"net/url"
 	"os"
+)
+
+import (
+	"github.com/maximtop/extdash/urlutil"
 )
 
 type Client struct {

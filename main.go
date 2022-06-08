@@ -25,13 +25,19 @@ func main() {
 		ClientSecret: os.Getenv("CHROME_CLIENT_SECRET"),
 		RefreshToken: os.Getenv("CHROME_REFRESH_TOKEN"),
 	}
-	chromeStore := chrome.NewStore("https://www.googleapis.com")
+	chromeStore, err := chrome.NewStore("https://www.googleapis.com")
+	if err != nil {
+		log.Fatal(err)
+	}
 
 	firefoxClient := firefox.NewClient(firefox.ClientConfig{
 		ClientID:     os.Getenv("FIREFOX_CLIENT_ID"),
 		ClientSecret: os.Getenv("FIREFOX_CLIENT_SECRET"),
 	})
-	firefoxStore := firefox.NewStore("https://addons.mozilla.org/")
+	firefoxStore, err := firefox.NewStore("https://addons.mozilla.org/")
+	if err != nil {
+		log.Fatal(err)
+	}
 
 	app := &cli.App{
 		Name:  "extdash",

@@ -71,7 +71,7 @@ type Store struct {
 func NewStore(rawURL string) (s Store, err error) {
 	URL, err := url.Parse(rawURL)
 	if err != nil {
-		return Store{}, fmt.Errorf("wasn't able to parse url %w", err)
+		return Store{}, fmt.Errorf("wasn't able to parse url: %s due to: %w", rawURL, err)
 	}
 
 	return Store{URL: URL}, nil

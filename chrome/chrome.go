@@ -55,7 +55,7 @@ func (c *Client) Authorize() (accessToken string, err error) {
 	}
 
 	if res.StatusCode != http.StatusOK {
-		return "", errors.New(result["error_description"].(string))
+		return "", fmt.Errorf("got code %d, body: %q", res.StatusCode, body)
 	}
 
 	accessToken = result["access_token"].(string)
@@ -118,8 +118,7 @@ func (s *Store) Status(c Client, appID string) (result StatusResponse, err error
 	body, err := io.ReadAll(res.Body)
 
 	if res.StatusCode != http.StatusOK {
-		err = errors.New(string(body))
-		return StatusResponse{}, err
+		return StatusResponse{}, fmt.Errorf("got code %d, body: %q", res.StatusCode, body)
 	}
 
 	err = json.Unmarshal(body, &result)

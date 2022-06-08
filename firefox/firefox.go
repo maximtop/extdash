@@ -3,7 +3,6 @@ package firefox
 import (
 	"bytes"
 	"encoding/json"
-	"errors"
 	"fmt"
 	"io"
 	"mime/multipart"
@@ -142,7 +141,7 @@ func (s *Store) Status(c Client, appID string) (result []byte, err error) {
 	}
 
 	if res.StatusCode != http.StatusOK {
-		return nil, errors.New(string(body))
+		return nil, fmt.Errorf("got code %d, body: %q", res.StatusCode, body)
 	}
 
 	// TODO (maximtop): make identical responses for all browsers

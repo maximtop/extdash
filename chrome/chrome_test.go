@@ -1,7 +1,8 @@
-package chrome
+package chrome_test
 
 import (
 	"encoding/json"
+	"github.com/maximtop/extdash/chrome"
 	"io"
 	"net/http"
 	"net/http/httptest"
@@ -61,7 +62,7 @@ func TestAuthorize(t *testing.T) {
 
 	defer server.Close()
 
-	client := Client{
+	client := chrome.Client{
 		URL:          server.URL,
 		ClientID:     clientID,
 		ClientSecret: clientSecret,
@@ -85,7 +86,7 @@ func TestStatus(t *testing.T) {
 	clientSecret := "test_client_secret"
 	refreshToken := "test_refresh_token"
 
-	status := StatusResponse{
+	status := chrome.StatusResponse{
 		Kind:        "test kind",
 		ID:          appID,
 		PublicKey:   "test public key",
@@ -96,7 +97,7 @@ func TestStatus(t *testing.T) {
 	authServer := createAuthServer(t, accessToken)
 	defer authServer.Close()
 
-	client := Client{
+	client := chrome.Client{
 		URL:          authServer.URL,
 		ClientID:     clientID,
 		ClientSecret: clientSecret,
@@ -129,7 +130,7 @@ func TestStatus(t *testing.T) {
 
 	defer storeServer.Close()
 
-	store, err := NewStore(storeServer.URL)
+	store, err := chrome.NewStore(storeServer.URL)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -150,7 +151,7 @@ func TestInsert(t *testing.T) {
 	clientID := "test_client_id"
 	clientSecret := "test_client_secret"
 	refreshToken := "test_refresh_token"
-	insertResponse := InsertResponse{
+	insertResponse := chrome.InsertResponse{
 		Kind:        "chromewebstore#item",
 		ID:          "lcfmdcpihnaincdpgibhlncnekofobkc",
 		UploadState: "SUCCESS",
@@ -159,7 +160,7 @@ func TestInsert(t *testing.T) {
 	authServer := createAuthServer(t, accessToken)
 	defer authServer.Close()
 
-	client := Client{
+	client := chrome.Client{
 		URL:          authServer.URL,
 		ClientID:     clientID,
 		ClientSecret: clientSecret,
@@ -195,7 +196,7 @@ func TestInsert(t *testing.T) {
 
 	defer storeServer.Close()
 
-	store, err := NewStore(storeServer.URL)
+	store, err := chrome.NewStore(storeServer.URL)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -216,7 +217,7 @@ func TestUpdate(t *testing.T) {
 	refreshToken := "test_refresh_token"
 	appID := "test_app_id"
 
-	updateResponse := UpdateResponse{
+	updateResponse := chrome.UpdateResponse{
 		Kind:        "test kind",
 		ID:          appID,
 		UploadState: "test success",
@@ -225,7 +226,7 @@ func TestUpdate(t *testing.T) {
 	authServer := createAuthServer(t, accessToken)
 	defer authServer.Close()
 
-	client := Client{
+	client := chrome.Client{
 		URL:          authServer.URL,
 		ClientID:     clientID,
 		ClientSecret: clientSecret,
@@ -256,7 +257,7 @@ func TestUpdate(t *testing.T) {
 	}))
 	defer storeServer.Close()
 
-	store, err := NewStore(storeServer.URL)
+	store, err := chrome.NewStore(storeServer.URL)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -277,7 +278,7 @@ func TestPublish(t *testing.T) {
 	refreshToken := "test_refresh_token"
 	appID := "test_app_id"
 
-	publishResponse := PublishResponse{
+	publishResponse := chrome.PublishResponse{
 		Kind:         "test_kind",
 		ItemID:       appID,
 		Status:       []string{"ok"},
@@ -287,7 +288,7 @@ func TestPublish(t *testing.T) {
 	authServer := createAuthServer(t, accessToken)
 	defer authServer.Close()
 
-	client := Client{
+	client := chrome.Client{
 		URL:          authServer.URL,
 		ClientID:     clientID,
 		ClientSecret: clientSecret,
@@ -312,7 +313,7 @@ func TestPublish(t *testing.T) {
 	}))
 	defer storeServer.Close()
 
-	store, err := NewStore(storeServer.URL)
+	store, err := chrome.NewStore(storeServer.URL)
 	if err != nil {
 		t.Fatal(err)
 	}

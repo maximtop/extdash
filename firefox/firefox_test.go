@@ -29,9 +29,13 @@ func TestStatus(t *testing.T) {
 	storeServer := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		assert.Equal(r.Method, http.MethodGet)
 		assert.Contains(r.URL.Path, appID)
-		assert.Equal(r.Header.Get("Authorization"), client.GenAuthHeader())
+		authHeader, err := client.GenAuthHeader()
+		if err != nil {
+			t.Fatal(err)
+		}
+		assert.Equal(r.Header.Get("Authorization"), authHeader)
 
-		_, err := w.Write([]byte(status))
+		_, err = w.Write([]byte(status))
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -67,7 +71,11 @@ func TestInsert(t *testing.T) {
 
 	storeServer := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		assert.Equal(r.Method, http.MethodPost)
-		assert.Equal(r.Header.Get("Authorization"), client.GenAuthHeader())
+		authHeader, err := client.GenAuthHeader()
+		if err != nil {
+			t.Fatal(err)
+		}
+		assert.Equal(r.Header.Get("Authorization"), authHeader)
 		assert.Contains(r.URL.Path, "/api/v5/addons")
 		file, _, err := r.FormFile("upload")
 		if err != nil {
@@ -114,7 +122,11 @@ func TestUpdate(t *testing.T) {
 	storeServer := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		assert.Equal(http.MethodPut, r.Method)
 		assert.Contains(r.URL.Path, "api/v5/addons/sample-for-dashboard8@adguard.com/versions/0.0.3")
-		assert.Equal(r.Header.Get("Authorization"), client.GenAuthHeader())
+		authHeader, err := client.GenAuthHeader()
+		if err != nil {
+			t.Fatal(err)
+		}
+		assert.Equal(r.Header.Get("Authorization"), authHeader)
 		file, header, err := r.FormFile("upload")
 		if err != nil {
 			t.Fatal(err)

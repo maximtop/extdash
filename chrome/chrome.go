@@ -5,7 +5,6 @@ import (
 	"errors"
 	"fmt"
 	"io"
-	"log"
 	"net/http"
 	"net/url"
 	"os"
@@ -35,7 +34,7 @@ func (c *Client) Authorize() (accessToken string, err error) {
 
 	res, err := http.PostForm(c.URL, data)
 	if err != nil {
-		return accessToken, err
+		return "", err
 	}
 
 	defer res.Body.Close()
@@ -43,7 +42,7 @@ func (c *Client) Authorize() (accessToken string, err error) {
 	body, err := io.ReadAll(res.Body)
 
 	if err != nil {
-		return accessToken, fmt.Errorf("[Authorize] %w", err)
+		return "", fmt.Errorf("[Authorize] %w", err)
 	}
 
 	// TODO (maximtop) describe response with type
@@ -51,7 +50,7 @@ func (c *Client) Authorize() (accessToken string, err error) {
 
 	err = json.Unmarshal(body, &result)
 	if err != nil {
-		return accessToken, err
+		return "", err
 	}
 
 	if res.StatusCode != http.StatusOK {
@@ -59,7 +58,7 @@ func (c *Client) Authorize() (accessToken string, err error) {
 	}
 
 	accessToken = result["access_token"].(string)
-	return accessToken, err
+	return accessToken, nil
 }
 
 // Store describes structure of the store
@@ -93,14 +92,14 @@ func (s *Store) Status(c Client, appID string) (result StatusResponse, err error
 
 	accessToken, err := c.Authorize()
 	if err != nil {
-		return result, err
+		return StatusResponse{}, err
 	}
 
 	client := &http.Client{}
 	var req *http.Request
 	req, err = http.NewRequest(http.MethodGet, apiURL, nil)
 	if err != nil {
-		return result, err
+		return StatusResponse{}, err
 	}
 	req.Header.Add("Authorization", "Bearer "+accessToken)
 	q := req.URL.Query()
@@ -109,7 +108,7 @@ func (s *Store) Status(c Client, appID string) (result StatusResponse, err error
 
 	res, err := client.Do(req)
 	if err != nil {
-		return result, err
+		return StatusResponse{}, err
 	}
 	defer res.Body.Close()
 
@@ -117,16 +116,16 @@ func (s *Store) Status(c Client, appID string) (result StatusResponse, err error
 
 	if res.StatusCode != http.StatusOK {
 		err = errors.New(string(body))
-		return result, err
+		return StatusResponse{}, err
 	}
 
 	err = json.Unmarshal(body, &result)
 
 	if err != nil {
-		return result, err
+		return StatusResponse{}, err
 	}
 
-	return result, err
+	return result, nil
 }
 
 // InsertResponse describes structure returned on the insert request
@@ -148,37 +147,37 @@ func (s *Store) Insert(c Client, filePath string) (result InsertResponse, err er
 
 	body, err := os.Open(filePath)
 	if err != nil {
-		return result, err
+		return InsertResponse{}, err
 	}
 
 	client := &http.Client{}
 	req, err := http.NewRequest(http.MethodPost, apiURL, body)
 	if err != nil {
-		return result, err
+		return InsertResponse{}, err
 	}
 
 	req.Header.Add("Authorization", "Bearer "+accessToken)
 	response, err := client.Do(req)
 	if err != nil {
-		log.Panic(err)
+		return InsertResponse{}, err
 	}
 
 	defer response.Body.Close()
 
 	responseBody, err := io.ReadAll(response.Body)
 	if err != nil {
-		return result, err
+		return InsertResponse{}, err
 	}
 	if response.StatusCode != http.StatusOK {
-		return result, errors.New(string(responseBody))
+		return InsertResponse{}, errors.New(string(responseBody))
 	}
 
 	err = json.Unmarshal(responseBody, &result)
 	if err != nil {
-		return result, err
+		return InsertResponse{}, err
 	}
 
-	return result, err
+	return result, nil
 }
 
 // UpdateResponse describes response returned on update request
@@ -195,46 +194,45 @@ func (s *Store) Update(c Client, appID, filePath string) (result UpdateResponse,
 
 	accessToken, err := c.Authorize()
 	if err != nil {
-		return result, err
+		return UpdateResponse{}, err
 	}
 
 	client := &http.Client{}
 
 	body, err := os.Open(filePath)
 	if err != nil {
-		return result, err
+		return UpdateResponse{}, err
 	}
 
 	req, err := http.NewRequest(http.MethodPut, apiURL, body)
 	if err != nil {
-		return result, err
+		return UpdateResponse{}, err
 	}
 
 	req.Header.Add("Authorization", "Bearer "+accessToken)
 
 	response, err := client.Do(req)
 	if err != nil {
-		return result, err
+		return UpdateResponse{}, err
 	}
 
 	defer response.Body.Close()
 
 	responseBody, err := io.ReadAll(response.Body)
 	if err != nil {
-		return result, err
+		return UpdateResponse{}, err
 	}
 
 	if response.StatusCode != http.StatusOK {
-		err := errors.New(string(responseBody))
-		return result, err
+		return UpdateResponse{}, errors.New(string(responseBody))
 	}
 
 	err = json.Unmarshal(responseBody, &result)
 	if err != nil {
-		return result, err
+		return UpdateResponse{}, err
 	}
 
-	return result, err
+	return result, nil
 }
 
 // PublishResponse describes response returned on publish request
@@ -252,21 +250,21 @@ func (s *Store) Publish(c Client, appID string) (result PublishResponse, err err
 
 	accessToken, err := c.Authorize()
 	if err != nil {
-		return result, err
+		return PublishResponse{}, err
 	}
 
 	client := &http.Client{}
 
 	req, err := http.NewRequest(http.MethodPost, apiURL, nil)
 	if err != nil {
-		return result, err
+		return PublishResponse{}, err
 	}
 
 	req.Header.Add("Authorization", "Bearer "+accessToken)
 
 	response, err := client.Do(req)
 	if err != nil {
-		return result, err
+		return PublishResponse{}, err
 	}
 
 	defer response.Body.Close()
@@ -274,18 +272,13 @@ func (s *Store) Publish(c Client, appID string) (result PublishResponse, err err
 	resultBody, err := io.ReadAll(response.Body)
 
 	if response.StatusCode != http.StatusOK {
-		err := errors.New(string(resultBody))
-		return result, err
+		return PublishResponse{}, errors.New(string(resultBody))
 	}
 
 	err = json.Unmarshal(resultBody, &result)
 	if err != nil {
-		return result, err
+		return PublishResponse{}, err
 	}
 
-	if err != nil {
-		return result, err
-	}
-
-	return result, err
+	return result, nil
 }

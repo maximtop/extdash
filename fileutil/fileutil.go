@@ -10,12 +10,12 @@ import (
 func readFile(file *zip.File) (result []byte, err error) {
 	reader, err := file.Open()
 	if err != nil {
-		return result, err
+		return nil, err
 	}
 	defer reader.Close()
 	content, err := ioutil.ReadAll(reader)
 	if err != nil {
-		return result, err
+		return nil, err
 	}
 	return content, err
 }
@@ -24,7 +24,7 @@ func readFile(file *zip.File) (result []byte, err error) {
 func ReadFileFromZip(zipFile, filename string) (result []byte, err error) {
 	reader, err := zip.OpenReader(zipFile)
 	if err != nil {
-		return result, err
+		return nil, err
 	}
 	defer reader.Close()
 
@@ -32,9 +32,9 @@ func ReadFileFromZip(zipFile, filename string) (result []byte, err error) {
 		if file.Name == filename {
 			result, err := readFile(file)
 			if err != nil {
-				return result, err
+				return nil, err
 			}
-			return result, err
+			return result, nil
 		}
 	}
 

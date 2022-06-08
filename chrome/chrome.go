@@ -8,6 +8,7 @@ import (
 	"net/http"
 	"net/url"
 	"os"
+	"time"
 )
 
 import (
@@ -85,6 +86,8 @@ type StatusResponse struct {
 	CrxVersion  string
 }
 
+const requestTimeout = 5 * time.Minute
+
 // Status retrieves status of the extension in the store
 func (s *Store) Status(c Client, appID string) (result StatusResponse, err error) {
 	const apiPath = "chromewebstore/v1.1/items"
@@ -95,7 +98,7 @@ func (s *Store) Status(c Client, appID string) (result StatusResponse, err error
 		return StatusResponse{}, err
 	}
 
-	client := &http.Client{}
+	client := &http.Client{Timeout: requestTimeout}
 	var req *http.Request
 	req, err = http.NewRequest(http.MethodGet, apiURL, nil)
 	if err != nil {
@@ -150,7 +153,7 @@ func (s *Store) Insert(c Client, filePath string) (result InsertResponse, err er
 		return InsertResponse{}, err
 	}
 
-	client := &http.Client{}
+	client := &http.Client{Timeout: requestTimeout}
 	req, err := http.NewRequest(http.MethodPost, apiURL, body)
 	if err != nil {
 		return InsertResponse{}, err
@@ -197,7 +200,7 @@ func (s *Store) Update(c Client, appID, filePath string) (result UpdateResponse,
 		return UpdateResponse{}, err
 	}
 
-	client := &http.Client{}
+	client := &http.Client{Timeout: requestTimeout}
 
 	body, err := os.Open(filePath)
 	if err != nil {
@@ -253,7 +256,7 @@ func (s *Store) Publish(c Client, appID string) (result PublishResponse, err err
 		return PublishResponse{}, err
 	}
 
-	client := &http.Client{}
+	client := &http.Client{Timeout: requestTimeout}
 
 	req, err := http.NewRequest(http.MethodPost, apiURL, nil)
 	if err != nil {

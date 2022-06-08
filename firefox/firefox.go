@@ -35,6 +35,8 @@ type ClientConfig struct {
 	Now          func() int64
 }
 
+const requestTimeout = 20 * time.Minute
+
 // NewClient creates instance of the Client
 func NewClient(config ClientConfig) Client {
 	c := config
@@ -120,14 +122,14 @@ func (s *Store) Status(c Client, appID string) (result []byte, err error) {
 		return nil, err
 	}
 
-	authHeader := c.GenAuthHeader()
+	authHeader, err := c.GenAuthHeader()
 	if err != nil {
 		return nil, err
 	}
 
 	req.Header.Add("Authorization", authHeader)
 
-	client := &http.Client{}
+	client := &http.Client{Timeout: requestTimeout}
 	res, err := client.Do(req)
 	if err != nil {
 		return nil, err
@@ -190,10 +192,14 @@ func (s *Store) Insert(c Client, filepath string) (result []byte, err error) {
 		return nil, err
 	}
 
-	req.Header.Add("Authorization", c.GenAuthHeader())
+	authHeader, err := c.GenAuthHeader()
+	if err != nil {
+		return nil, err
+	}
+	req.Header.Add("Authorization", authHeader)
 	req.Header.Add("Content-Type", writer.FormDataContentType())
 
-	client := http.Client{}
+	client := http.Client{Timeout: requestTimeout}
 	res, err := client.Do(req)
 	if err != nil {
 		return nil, err
@@ -244,13 +250,16 @@ func (s *Store) Update(c Client, filepath string) (result []byte, err error) {
 		return nil, err
 	}
 
-	client := http.Client{}
+	client := http.Client{Timeout: requestTimeout}
 	req, err := http.NewRequest(http.MethodPut, apiURL, body)
 	if err != nil {
 		return nil, err
 	}
 
-	authHeader := c.GenAuthHeader()
+	authHeader, err := c.GenAuthHeader()
+	if err != nil {
+		return nil, err
+	}
 	req.Header.Add("Authorization", authHeader)
 	req.Header.Add("Content-Type", writer.FormDataContentType())
 

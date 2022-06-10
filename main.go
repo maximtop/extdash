@@ -23,12 +23,17 @@ func main() {
 		log.Panic(err)
 	}
 
-	accessToken, err := edgeClient.Authorize()
+	edgeStore, err := edge.NewStore("https://api.addons.microsoftedge.microsoft.com")
 	if err != nil {
 		log.Panic(err)
 	}
 
-	fmt.Println(accessToken)
+	response, err := edgeStore.Update(edgeClient, "b0e09fcd-ac27-48d0-9cd3-6d27427b1333", "tmp/extension.zip")
+	if err != nil {
+		log.Panic(err)
+	}
+
+	fmt.Printf("%+v", response)
 }
 
 // func main() {

@@ -4,7 +4,7 @@ import (
 	"net/url"
 	"testing"
 
-	"github.com/maximtop/extdash/urlutil"
+	"github.com/maximtop/extdash/internal/urlutil"
 	"github.com/stretchr/testify/assert"
 )
 

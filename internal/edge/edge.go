@@ -3,7 +3,6 @@ package edge
 import (
 	"encoding/json"
 	"fmt"
-	"github.com/maximtop/extdash/urlutil"
 	"io/ioutil"
 	"log"
 	"net/http"
@@ -11,6 +10,8 @@ import (
 	"os"
 	"strings"
 	"time"
+
+	"github.com/maximtop/extdash/internal/urlutil"
 )
 
 const requestTimeout = 5 * time.Minute
@@ -56,6 +57,7 @@ func (c *Client) Authorize() (accessToken string, err error) {
 	req.Header.Add("Content-Type", "application/x-www-form-urlencoded")
 
 	client := http.Client{Timeout: requestTimeout}
+
 	response, err := client.Do(req)
 	if err != nil {
 		return "", err
@@ -108,6 +110,7 @@ func (u UploadStatus) String() string {
 	case Failed:
 		return "Failed"
 	}
+
 	return "unknown"
 }
 
@@ -118,23 +121,31 @@ func (s Store) Update(c Client, appID, filepath string) (result UploadStatusResp
 	}
 	// FIXME find out how to move time forward
 	const timeout = 1 * time.Minute
+
 	startTime := time.Now()
+
 	for {
 		log.Println("getting upload status...")
+
 		status, err := s.UploadStatus(c, appID, string(operationID))
 		if err != nil {
 			return UploadStatusResponse{}, err
 		}
+
 		if status.Status == InProgress.String() {
 			time.Sleep(5 * time.Second)
+
 			continue
 		}
+
 		if status.Status == Succeeded.String() {
 			return status, nil
 		}
+
 		if status.Status == Failed.String() {
 			return UploadStatusResponse{}, fmt.Errorf("update failed due to %s, full error %+v", status.Message, status)
 		}
+
 		if time.Now().After(startTime.Add(timeout)) {
 			return UploadStatusResponse{}, fmt.Errorf("update failed due to timeout")
 		}
@@ -160,10 +171,12 @@ func (s Store) UploadUpdate(c Client, appID, filepath string) (result []byte, er
 	if err != nil {
 		return nil, err
 	}
+
 	req.Header.Add("Authorization", "Bearer "+accessToken)
 	req.Header.Add("Content-Type", "application/zip")
 
 	client := http.Client{Timeout: requestTimeout}
+
 	res, err := client.Do(req)
 	if err != nil {
 		return nil, err
@@ -191,6 +204,7 @@ type UploadStatusResponse struct {
 func (s Store) UploadStatus(c Client, appID, operationID string) (response UploadStatusResponse, err error) {
 	apiPath := "v1/products"
 	apiURL := urlutil.JoinURL(s.URL, apiPath, appID, "submissions/draft/package/operations", operationID)
+
 	req, err := http.NewRequest(http.MethodGet, apiURL, nil)
 	if err != nil {
 		return UploadStatusResponse{}, err
@@ -200,6 +214,7 @@ func (s Store) UploadStatus(c Client, appID, operationID string) (response Uploa
 	if err != nil {
 		return UploadStatusResponse{}, err
 	}
+
 	req.Header.Set("Authorization", "Bearer "+accessToken)
 
 	client := http.Client{

@@ -2,8 +2,6 @@ package edge_test
 
 import (
 	"encoding/json"
-	"github.com/maximtop/extdash/edge"
-	"github.com/stretchr/testify/assert"
 	"io/ioutil"
 	"log"
 	"net/http"
@@ -12,7 +10,33 @@ import (
 	"path"
 	"strings"
 	"testing"
+
+	"github.com/maximtop/extdash/internal/edge"
+
+	"github.com/stretchr/testify/assert"
 )
+
+func newAuthServer(t *testing.T, accessToken string) *httptest.Server {
+	t.Helper()
+
+	return httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		response := edge.AuthorizeResponse{
+			TokenType:   "",
+			ExpiresIn:   0,
+			AccessToken: accessToken,
+		}
+
+		responseData, err := json.Marshal(response)
+		if err != nil {
+			t.Fatal(err)
+		}
+
+		_, err = w.Write(responseData)
+		if err != nil {
+			t.Fatal(err)
+		}
+	}))
+}
 
 func TestAuthorize(t *testing.T) {
 	assert := assert.New(t)
@@ -55,26 +79,6 @@ func TestAuthorize(t *testing.T) {
 	}
 
 	assert.Equal(accessToken, actualAccessToken)
-}
-
-func newAuthServer(t *testing.T, accessToken string) *httptest.Server {
-	return httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		response := edge.AuthorizeResponse{
-			TokenType:   "",
-			ExpiresIn:   0,
-			AccessToken: accessToken,
-		}
-
-		responseData, err := json.Marshal(response)
-		if err != nil {
-			t.Fatal(err)
-		}
-
-		_, err = w.Write(responseData)
-		if err != nil {
-			t.Fatal(err)
-		}
-	}))
 }
 
 func TestUploadUpdate(t *testing.T) {
@@ -156,7 +160,6 @@ func TestUploadStatus(t *testing.T) {
 		assert.Equal(r.URL.Path, "/products/"+appID+"/submissions/draft/package/operations/"+operationID)
 
 		response, err := json.Marshal(response)
-
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -240,6 +243,7 @@ func TestUpdate(t *testing.T) {
 					}
 				}
 				counter++
+
 				return
 			}
 

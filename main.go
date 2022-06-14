@@ -2,22 +2,15 @@ package main
 
 import (
 	"fmt"
-	"github.com/joho/godotenv"
-	"github.com/maximtop/extdash/edge"
 	"log"
 	"os"
-)
 
-import (
 	"github.com/joho/godotenv"
-	"github.com/maximtop/extdash/chrome"
-	"github.com/maximtop/extdash/firefox"
-	"github.com/urfave/cli/v2"
+	"github.com/maximtop/extdash/internal/edge"
 )
 
 func main() {
-	err := godotenv.Load()
-	if err != nil {
+	if err := godotenv.Load(); err != nil {
 		log.Fatal("Error loading .env file")
 	}
 

@@ -6,6 +6,12 @@ import (
 	"io/ioutil"
 )
 
+const (
+	_        = iota
+	KB int64 = 1 << (10 * iota)
+	MB
+)
+
 // readFile reads content of the archived file
 func readFile(file *zip.File) (result []byte, err error) {
 	reader, err := file.Open()

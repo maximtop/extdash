@@ -10,6 +10,7 @@ import (
 	"os"
 	"time"
 
+	"github.com/maximtop/extdash/internal/fileutil"
 	"github.com/maximtop/extdash/internal/urlutil"
 )
 
@@ -20,6 +21,9 @@ type Client struct {
 	ClientSecret string
 	RefreshToken string
 }
+
+// maxReadLimit limits response size returned from the store
+const maxReadLimit = 10 * fileutil.MB
 
 // Authorize retrieves access token
 func (c *Client) Authorize() (accessToken string, err error) {
@@ -35,11 +39,9 @@ func (c *Client) Authorize() (accessToken string, err error) {
 	if err != nil {
 		return "", err
 	}
-
 	defer res.Body.Close()
 
-	body, err := io.ReadAll(res.Body)
-
+	body, err := io.ReadAll(io.LimitReader(res.Body, maxReadLimit))
 	if err != nil {
 		return "", fmt.Errorf("[Authorize] %w", err)
 	}
@@ -113,7 +115,7 @@ func (s *Store) Status(c Client, appID string) (result StatusResponse, err error
 	}
 	defer res.Body.Close()
 
-	body, err := io.ReadAll(res.Body)
+	body, err := io.ReadAll(io.LimitReader(res.Body, maxReadLimit))
 
 	if res.StatusCode != http.StatusOK {
 		return StatusResponse{}, fmt.Errorf("got code %d, body: %q", res.StatusCode, body)
@@ -161,10 +163,9 @@ func (s *Store) Insert(c Client, filePath string) (result InsertResponse, err er
 	if err != nil {
 		return InsertResponse{}, err
 	}
-
 	defer res.Body.Close()
 
-	responseBody, err := io.ReadAll(res.Body)
+	responseBody, err := io.ReadAll(io.LimitReader(res.Body, maxReadLimit))
 	if err != nil {
 		return InsertResponse{}, err
 	}
@@ -215,10 +216,9 @@ func (s *Store) Update(c Client, appID, filePath string) (result UpdateResponse,
 	if err != nil {
 		return UpdateResponse{}, err
 	}
-
 	defer res.Body.Close()
 
-	responseBody, err := io.ReadAll(res.Body)
+	responseBody, err := io.ReadAll(io.LimitReader(res.Body, maxReadLimit))
 	if err != nil {
 		return UpdateResponse{}, err
 	}
@@ -266,10 +266,9 @@ func (s *Store) Publish(c Client, appID string) (result PublishResponse, err err
 	if err != nil {
 		return PublishResponse{}, err
 	}
-
 	defer res.Body.Close()
 
-	resultBody, err := io.ReadAll(res.Body)
+	resultBody, err := io.ReadAll(io.LimitReader(res.Body, maxReadLimit))
 
 	if res.StatusCode != http.StatusOK {
 		return PublishResponse{}, errors.New(string(resultBody))

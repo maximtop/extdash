@@ -3,7 +3,7 @@ package fileutil
 import (
 	"archive/zip"
 	"errors"
-	"io/ioutil"
+	"io"
 )
 
 const (
@@ -19,7 +19,7 @@ func readFile(file *zip.File) (result []byte, err error) {
 		return nil, err
 	}
 	defer reader.Close()
-	content, err := ioutil.ReadAll(reader)
+	content, err := io.ReadAll(reader)
 	if err != nil {
 		return nil, err
 	}

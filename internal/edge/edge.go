@@ -114,7 +114,23 @@ func (u UploadStatus) String() string {
 	return "unknown"
 }
 
-func (s Store) Update(c Client, appID, filepath string) (result UploadStatusResponse, err error) {
+type UploadStatusResponse struct {
+	ID              string   `json:"id"`
+	CreatedTime     string   `json:"createdTime"`
+	LastUpdatedTime string   `json:"lastUpdatedTime"`
+	Status          string   `json:"status"`
+	Message         string   `json:"message"`
+	ErrorCode       string   `json:"errorCode"`
+	Errors          []string `json:"errors"`
+}
+
+func (s Store) Update(c Client, appID, filepath string, retryTimeout time.Duration) (result UploadStatusResponse, err error) {
+	const defaultRetryTimeout = 5 * time.Second
+
+	if retryTimeout == 0 {
+		retryTimeout = defaultRetryTimeout
+	}
+
 	operationID, err := s.UploadUpdate(c, appID, filepath)
 	if err != nil {
 		return UploadStatusResponse{}, err
@@ -133,7 +149,7 @@ func (s Store) Update(c Client, appID, filepath string) (result UploadStatusResp
 		}
 
 		if status.Status == InProgress.String() {
-			time.Sleep(5 * time.Second)
+			time.Sleep(retryTimeout)
 
 			continue
 		}
@@ -189,16 +205,6 @@ func (s Store) UploadUpdate(c Client, appID, filepath string) (result []byte, er
 	operationID := res.Header.Get("Location")
 
 	return []byte(operationID), nil
-}
-
-type UploadStatusResponse struct {
-	ID              string   `json:"id"`
-	CreatedTime     string   `json:"createdTime"`
-	LastUpdatedTime string   `json:"lastUpdatedTime"`
-	Status          string   `json:"status"`
-	Message         string   `json:"message"`
-	ErrorCode       string   `json:"errorCode"`
-	Errors          []string `json:"errors"`
 }
 
 func (s Store) UploadStatus(c Client, appID, operationID string) (response UploadStatusResponse, err error) {

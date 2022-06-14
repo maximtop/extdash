@@ -10,9 +10,9 @@ import (
 	"path"
 	"strings"
 	"testing"
+	"time"
 
 	"github.com/maximtop/extdash/internal/edge"
-
 	"github.com/stretchr/testify/assert"
 )
 
@@ -261,7 +261,7 @@ func TestUpdate(t *testing.T) {
 			t.Fatal(err)
 		}
 
-		response, err := store.Update(client, appID, "testdata/test.txt")
+		response, err := store.Update(client, appID, "testdata/test.txt", time.Millisecond)
 		if err != nil {
 			t.Fatal(err)
 		}

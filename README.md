@@ -2,8 +2,8 @@
 
 ## FEATURES TODO list
 - [ ] create api to deploy to the stores
-  - [ ] chrome
-  - [ ] mozilla
+  - [x] chrome
+  - [x] mozilla
   - [ ] edge
   - [ ] opera
   - [ ] static

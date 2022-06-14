@@ -1,16 +1,15 @@
 package firefox_test
 
 import (
-	"github.com/maximtop/extdash/firefox"
 	"io"
 	"net/http"
 	"net/http/httptest"
 	"testing"
 	"time"
-)
 
-import (
+	"github.com/maximtop/extdash/internal/firefox"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func TestStatus(t *testing.T) {
@@ -30,28 +29,21 @@ func TestStatus(t *testing.T) {
 		assert.Equal(r.Method, http.MethodGet)
 		assert.Contains(r.URL.Path, appID)
 		authHeader, err := client.GenAuthHeader()
-		if err != nil {
-			t.Fatal(err)
-		}
+		require.NoError(t, err)
+
 		assert.Equal(r.Header.Get("Authorization"), authHeader)
 
 		_, err = w.Write([]byte(status))
-		if err != nil {
-			t.Fatal(err)
-		}
+		require.NoError(t, err)
 	}))
 	defer storeServer.Close()
 
 	store, err := firefox.NewStore(storeServer.URL)
-	if err != nil {
-		t.Fatal(err)
-	}
+	require.NoError(t, err)
 
 	actualStatus, err := store.Status(client, appID)
 
-	if err != nil {
-		t.Fatal(err)
-	}
+	require.NoError(t, err)
 
 	assert.Equal(status, string(actualStatus))
 }
@@ -72,37 +64,28 @@ func TestInsert(t *testing.T) {
 	storeServer := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		assert.Equal(r.Method, http.MethodPost)
 		authHeader, err := client.GenAuthHeader()
-		if err != nil {
-			t.Fatal(err)
-		}
+		require.NoError(t, err)
+
 		assert.Equal(r.Header.Get("Authorization"), authHeader)
 		assert.Contains(r.URL.Path, "/api/v5/addons")
 		file, _, err := r.FormFile("upload")
-		if err != nil {
-			t.Fatal(err)
-		}
+		require.NoError(t, err)
+
 		defer file.Close()
 		body, err := io.ReadAll(file)
-		if err != nil {
-			t.Fatal(err)
-		}
+		require.NoError(t, err)
+
 		assert.Contains(string(body), "test content")
 
 		_, err = w.Write([]byte(status))
-		if err != nil {
-			t.Fatal(err)
-		}
+		require.NoError(t, err)
 	}))
 
 	store, err := firefox.NewStore(storeServer.URL)
-	if err != nil {
-		t.Fatal(err)
-	}
+	require.NoError(t, err)
 
 	resultStatus, err := store.Insert(client, "testdata/test.txt")
-	if err != nil {
-		t.Fatal(err)
-	}
+	require.NoError(t, err)
 
 	assert.Equal(status, string(resultStatus))
 }
@@ -123,32 +106,24 @@ func TestUpdate(t *testing.T) {
 		assert.Equal(http.MethodPut, r.Method)
 		assert.Contains(r.URL.Path, "api/v5/addons/sample-for-dashboard8@adguard.com/versions/0.0.3")
 		authHeader, err := client.GenAuthHeader()
-		if err != nil {
-			t.Fatal(err)
-		}
+		require.NoError(t, err)
+
 		assert.Equal(r.Header.Get("Authorization"), authHeader)
 		file, header, err := r.FormFile("upload")
-		if err != nil {
-			t.Fatal(err)
-		}
+		require.NoError(t, err)
+
 		defer file.Close()
 		assert.Equal(header.Filename, "extension.zip")
 
 		_, err = w.Write([]byte(response))
-		if err != nil {
-			t.Fatal(err)
-		}
+		require.NoError(t, err)
 	}))
 
 	store, err := firefox.NewStore(storeServer.URL)
-	if err != nil {
-		t.Fatal(err)
-	}
+	require.NoError(t, err)
 
 	actualResponse, err := store.Update(client, "testdata/extension.zip")
-	if err != nil {
-		t.Fatal(err)
-	}
+	require.NoError(t, err)
 
 	assert.Equal(response, string(actualResponse))
 }

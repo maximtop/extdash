@@ -8,6 +8,13 @@ import (
 	"os"
 )
 
+import (
+	"github.com/joho/godotenv"
+	"github.com/maximtop/extdash/chrome"
+	"github.com/maximtop/extdash/firefox"
+	"github.com/urfave/cli/v2"
+)
+
 func main() {
 	err := godotenv.Load()
 	if err != nil {

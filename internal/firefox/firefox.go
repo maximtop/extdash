@@ -11,12 +11,10 @@ import (
 	"os"
 	"path"
 	"time"
-)
 
-import (
 	"github.com/golang-jwt/jwt/v4"
-	"github.com/maximtop/extdash/fileutil"
-	"github.com/maximtop/extdash/urlutil"
+	"github.com/maximtop/extdash/internal/fileutil"
+	"github.com/maximtop/extdash/internal/urlutil"
 )
 
 // TODO add method for signing standalone extension
@@ -34,7 +32,11 @@ type ClientConfig struct {
 	Now          func() int64
 }
 
+// TODO (maximtop): consider to make this constant an option
 const requestTimeout = 20 * time.Minute
+
+// maxReadLimit limits response size returned from the store api
+const maxReadLimit = 10 * fileutil.MB
 
 // NewClient creates instance of the Client
 func NewClient(config ClientConfig) Client {
@@ -135,7 +137,7 @@ func (s *Store) Status(c Client, appID string) (result []byte, err error) {
 	}
 	defer res.Body.Close()
 
-	body, err := io.ReadAll(res.Body)
+	body, err := io.ReadAll(io.LimitReader(res.Body, maxReadLimit))
 	if err != nil {
 		return nil, err
 	}
@@ -205,7 +207,7 @@ func (s *Store) Insert(c Client, filepath string) (result []byte, err error) {
 	}
 	defer res.Body.Close()
 
-	respBody, err := io.ReadAll(res.Body)
+	respBody, err := io.ReadAll(io.LimitReader(res.Body, maxReadLimit))
 	if err != nil {
 		return nil, err
 	}
@@ -268,7 +270,7 @@ func (s *Store) Update(c Client, filepath string) (result []byte, err error) {
 	}
 	defer res.Body.Close()
 
-	responseBody, err := io.ReadAll(res.Body)
+	responseBody, err := io.ReadAll(io.LimitReader(res.Body, maxReadLimit))
 	if err != nil {
 		return nil, err
 	}

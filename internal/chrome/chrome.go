@@ -9,10 +9,8 @@ import (
 	"net/url"
 	"os"
 	"time"
-)
 
-import (
-	"github.com/maximtop/extdash/urlutil"
+	"github.com/maximtop/extdash/internal/urlutil"
 )
 
 // Client describes structure of the client
@@ -159,18 +157,18 @@ func (s *Store) Insert(c Client, filePath string) (result InsertResponse, err er
 	}
 
 	req.Header.Add("Authorization", "Bearer "+accessToken)
-	response, err := client.Do(req)
+	res, err := client.Do(req)
 	if err != nil {
 		return InsertResponse{}, err
 	}
 
-	defer response.Body.Close()
+	defer res.Body.Close()
 
-	responseBody, err := io.ReadAll(response.Body)
+	responseBody, err := io.ReadAll(res.Body)
 	if err != nil {
 		return InsertResponse{}, err
 	}
-	if response.StatusCode != http.StatusOK {
+	if res.StatusCode != http.StatusOK {
 		return InsertResponse{}, errors.New(string(responseBody))
 	}
 
@@ -213,19 +211,19 @@ func (s *Store) Update(c Client, appID, filePath string) (result UpdateResponse,
 
 	req.Header.Add("Authorization", "Bearer "+accessToken)
 
-	response, err := client.Do(req)
+	res, err := client.Do(req)
 	if err != nil {
 		return UpdateResponse{}, err
 	}
 
-	defer response.Body.Close()
+	defer res.Body.Close()
 
-	responseBody, err := io.ReadAll(response.Body)
+	responseBody, err := io.ReadAll(res.Body)
 	if err != nil {
 		return UpdateResponse{}, err
 	}
 
-	if response.StatusCode != http.StatusOK {
+	if res.StatusCode != http.StatusOK {
 		return UpdateResponse{}, errors.New(string(responseBody))
 	}
 
@@ -264,16 +262,16 @@ func (s *Store) Publish(c Client, appID string) (result PublishResponse, err err
 
 	req.Header.Add("Authorization", "Bearer "+accessToken)
 
-	response, err := client.Do(req)
+	res, err := client.Do(req)
 	if err != nil {
 		return PublishResponse{}, err
 	}
 
-	defer response.Body.Close()
+	defer res.Body.Close()
 
-	resultBody, err := io.ReadAll(response.Body)
+	resultBody, err := io.ReadAll(res.Body)
 
-	if response.StatusCode != http.StatusOK {
+	if res.StatusCode != http.StatusOK {
 		return PublishResponse{}, errors.New(string(resultBody))
 	}
 

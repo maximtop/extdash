@@ -4,12 +4,10 @@ import (
 	"fmt"
 	"log"
 	"os"
-)
 
-import (
 	"github.com/joho/godotenv"
-	"github.com/maximtop/extdash/chrome"
-	"github.com/maximtop/extdash/firefox"
+	"github.com/maximtop/extdash/internal/chrome"
+	"github.com/maximtop/extdash/internal/firefox"
 	"github.com/urfave/cli/v2"
 )
 

@@ -11,12 +11,13 @@ import (
 	"os"
 	"path"
 	"time"
+
+	"github.com/maximtop/extdash/internal/fileutil"
+	"github.com/maximtop/extdash/internal/urlutil"
 )
 
 import (
 	"github.com/golang-jwt/jwt/v4"
-	"github.com/maximtop/extdash/fileutil"
-	"github.com/maximtop/extdash/urlutil"
 )
 
 // TODO add method for signing standalone extension
@@ -34,6 +35,7 @@ type ClientConfig struct {
 	Now          func() int64
 }
 
+// TODO (maximtop): consider to make this constant an option
 const requestTimeout = 20 * time.Minute
 
 // NewClient creates instance of the Client

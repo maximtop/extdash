@@ -1,12 +1,13 @@
 package firefox_test
 
 import (
-	"github.com/maximtop/extdash/firefox"
 	"io"
 	"net/http"
 	"net/http/httptest"
 	"testing"
 	"time"
+
+	"github.com/maximtop/extdash/internal/firefox"
 )
 
 import (

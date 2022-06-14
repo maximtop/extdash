@@ -2,11 +2,12 @@ package chrome_test
 
 import (
 	"encoding/json"
-	"github.com/maximtop/extdash/chrome"
 	"io"
 	"net/http"
 	"net/http/httptest"
 	"testing"
+
+	"github.com/maximtop/extdash/internal/chrome"
 )
 
 import (

@@ -8,10 +8,8 @@ import (
 	"testing"
 
 	"github.com/maximtop/extdash/internal/chrome"
-)
-
-import (
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func createAuthServer(t *testing.T, accessToken string) *httptest.Server {
@@ -19,14 +17,10 @@ func createAuthServer(t *testing.T, accessToken string) *httptest.Server {
 		expectedJSON, err := json.Marshal(map[string]string{
 			"access_token": accessToken,
 		})
-		if err != nil {
-			t.Fatal(err)
-		}
+		require.NoError(t, err)
 
 		_, err = w.Write(expectedJSON)
-		if err != nil {
-			t.Fatal(err)
-		}
+		require.NoError(t, err)
 	}))
 
 	return authServer
@@ -51,14 +45,10 @@ func TestAuthorize(t *testing.T) {
 		expectedJSON, err := json.Marshal(map[string]string{
 			"access_token": accessToken,
 		})
-		if err != nil {
-			t.Fatal(err)
-		}
+		require.NoError(t, err)
 
 		_, err = w.Write(expectedJSON)
-		if err != nil {
-			t.Fatal(err)
-		}
+		require.NoError(t, err)
 	}))
 
 	defer server.Close()
@@ -118,29 +108,19 @@ func TestStatus(t *testing.T) {
 			"uploadState": status.UploadState,
 			"crxVersion":  status.CrxVersion,
 		})
-
-		if err != nil {
-			t.Fatal(err)
-		}
+		require.NoError(t, err)
 
 		_, err = w.Write(expectedJSON)
-		if err != nil {
-			t.Fatal(err)
-		}
+		require.NoError(t, err)
 	}))
 
 	defer storeServer.Close()
 
 	store, err := chrome.NewStore(storeServer.URL)
-	if err != nil {
-		t.Fatal(err)
-	}
+	require.NoError(t, err)
 
 	actualStatus, err := store.Status(client, appID)
-
-	if err != nil {
-		t.Fatal(err)
-	}
+	require.NoError(t, err)
 
 	assert.Equal(status, actualStatus)
 }
@@ -174,9 +154,7 @@ func TestInsert(t *testing.T) {
 		assert.Equal(r.Header.Get("Authorization"), "Bearer "+accessToken)
 
 		body, err := io.ReadAll(r.Body)
-		if err != nil {
-			t.Fatal(err)
-		}
+		require.NoError(t, err)
 
 		assert.Equal("test file", string(body))
 
@@ -185,27 +163,20 @@ func TestInsert(t *testing.T) {
 			"id":          insertResponse.ID,
 			"uploadState": insertResponse.UploadState,
 		})
-		if err != nil {
-			t.Fatal(err)
-		}
+		require.NoError(t, err)
 
 		_, err = w.Write(expectedJSON)
-		if err != nil {
-			t.Fatal(err)
-		}
+		require.NoError(t, err)
 	}))
 
 	defer storeServer.Close()
 
 	store, err := chrome.NewStore(storeServer.URL)
-	if err != nil {
-		t.Fatal(err)
-	}
+	require.NoError(t, err)
 
 	result, err := store.Insert(client, "./testdata/test.txt")
-	if err != nil {
-		t.Fatal(err)
-	}
+	require.NoError(t, err)
+
 	assert.Equal(insertResponse, result)
 }
 
@@ -240,33 +211,23 @@ func TestUpdate(t *testing.T) {
 		assert.Equal(r.Header.Get("Authorization"), "Bearer "+accessToken)
 
 		body, err := io.ReadAll(r.Body)
-		if err != nil {
-			t.Fatal(err)
-		}
+		require.NoError(t, err)
 
 		assert.Equal("test file", string(body))
 
 		expectedJSON, err := json.Marshal(updateResponse)
-		if err != nil {
-			t.Fatal(err)
-		}
+		require.NoError(t, err)
 
 		_, err = w.Write(expectedJSON)
-		if err != nil {
-			t.Fatal(err)
-		}
+		require.NoError(t, err)
 	}))
 	defer storeServer.Close()
 
 	store, err := chrome.NewStore(storeServer.URL)
-	if err != nil {
-		t.Fatal(err)
-	}
+	require.NoError(t, err)
 
 	result, err := store.Update(client, appID, "testdata/test.txt")
-	if err != nil {
-		t.Fatal(err)
-	}
+	require.NoError(t, err)
 	assert.Equal(updateResponse, result)
 }
 
@@ -303,25 +264,17 @@ func TestPublish(t *testing.T) {
 		assert.Equal(r.Header.Get("Content-Length"), "0")
 
 		expectedJSON, err := json.Marshal(publishResponse)
-		if err != nil {
-			t.Fatal(err)
-		}
+		require.NoError(t, err)
 
 		_, err = w.Write(expectedJSON)
-		if err != nil {
-			t.Fatal(err)
-		}
+		require.NoError(t, err)
 	}))
 	defer storeServer.Close()
 
 	store, err := chrome.NewStore(storeServer.URL)
-	if err != nil {
-		t.Fatal(err)
-	}
+	require.NoError(t, err)
 
 	result, err := store.Publish(client, appID)
-	if err != nil {
-		t.Fatal(err)
-	}
+	require.NoError(t, err)
 	assert.Equal(publishResponse, result)
 }

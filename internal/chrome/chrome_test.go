@@ -122,7 +122,7 @@ func TestStatus(t *testing.T) {
 	actualStatus, err := store.Status(client, appID)
 	require.NoError(t, err)
 
-	assert.Equal(status, actualStatus)
+	assert.Equal(status, *actualStatus)
 }
 
 func TestInsert(t *testing.T) {
@@ -177,7 +177,7 @@ func TestInsert(t *testing.T) {
 	result, err := store.Insert(client, "./testdata/test.txt")
 	require.NoError(t, err)
 
-	assert.Equal(insertResponse, result)
+	assert.Equal(insertResponse, *result)
 }
 
 func TestUpdate(t *testing.T) {
@@ -228,7 +228,7 @@ func TestUpdate(t *testing.T) {
 
 	result, err := store.Update(client, appID, "testdata/test.txt")
 	require.NoError(t, err)
-	assert.Equal(updateResponse, result)
+	assert.Equal(updateResponse, *result)
 }
 
 func TestPublish(t *testing.T) {
@@ -276,5 +276,5 @@ func TestPublish(t *testing.T) {
 
 	result, err := store.Publish(client, appID)
 	require.NoError(t, err)
-	assert.Equal(publishResponse, result)
+	assert.Equal(publishResponse, *result)
 }

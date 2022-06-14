@@ -89,20 +89,20 @@ type StatusResponse struct {
 const requestTimeout = 5 * time.Minute
 
 // Status retrieves status of the extension in the store
-func (s *Store) Status(c Client, appID string) (result StatusResponse, err error) {
+func (s *Store) Status(c Client, appID string) (result *StatusResponse, err error) {
 	const apiPath = "chromewebstore/v1.1/items"
 	apiURL := urlutil.JoinURL(s.URL, apiPath, appID)
 
 	accessToken, err := c.Authorize()
 	if err != nil {
-		return StatusResponse{}, err
+		return nil, err
 	}
 
 	client := &http.Client{Timeout: requestTimeout}
 	var req *http.Request
 	req, err = http.NewRequest(http.MethodGet, apiURL, nil)
 	if err != nil {
-		return StatusResponse{}, err
+		return nil, err
 	}
 	req.Header.Add("Authorization", "Bearer "+accessToken)
 	q := req.URL.Query()
@@ -111,20 +111,20 @@ func (s *Store) Status(c Client, appID string) (result StatusResponse, err error
 
 	res, err := client.Do(req)
 	if err != nil {
-		return StatusResponse{}, err
+		return nil, err
 	}
 	defer res.Body.Close()
 
 	body, err := io.ReadAll(io.LimitReader(res.Body, maxReadLimit))
 
 	if res.StatusCode != http.StatusOK {
-		return StatusResponse{}, fmt.Errorf("got code %d, body: %q", res.StatusCode, body)
+		return nil, fmt.Errorf("got code %d, body: %q", res.StatusCode, body)
 	}
 
 	err = json.Unmarshal(body, &result)
 
 	if err != nil {
-		return StatusResponse{}, err
+		return nil, err
 	}
 
 	return result, nil
@@ -138,7 +138,7 @@ type InsertResponse struct {
 }
 
 // Insert uploads a package to create a new store item
-func (s *Store) Insert(c Client, filePath string) (result InsertResponse, err error) {
+func (s *Store) Insert(c Client, filePath string) (result *InsertResponse, err error) {
 	const apiPath = "upload/chromewebstore/v1.1/items"
 	apiURL := urlutil.JoinURL(s.URL, apiPath)
 
@@ -149,33 +149,33 @@ func (s *Store) Insert(c Client, filePath string) (result InsertResponse, err er
 
 	body, err := os.Open(filePath)
 	if err != nil {
-		return InsertResponse{}, err
+		return nil, err
 	}
 
 	client := &http.Client{Timeout: requestTimeout}
 	req, err := http.NewRequest(http.MethodPost, apiURL, body)
 	if err != nil {
-		return InsertResponse{}, err
+		return nil, err
 	}
 
 	req.Header.Add("Authorization", "Bearer "+accessToken)
 	res, err := client.Do(req)
 	if err != nil {
-		return InsertResponse{}, err
+		return nil, err
 	}
 	defer res.Body.Close()
 
 	responseBody, err := io.ReadAll(io.LimitReader(res.Body, maxReadLimit))
 	if err != nil {
-		return InsertResponse{}, err
+		return nil, err
 	}
 	if res.StatusCode != http.StatusOK {
-		return InsertResponse{}, errors.New(string(responseBody))
+		return nil, errors.New(string(responseBody))
 	}
 
 	err = json.Unmarshal(responseBody, &result)
 	if err != nil {
-		return InsertResponse{}, err
+		return nil, err
 	}
 
 	return result, nil
@@ -189,47 +189,47 @@ type UpdateResponse struct {
 }
 
 // Update uploads new version of the package to the store
-func (s *Store) Update(c Client, appID, filePath string) (result UpdateResponse, err error) {
+func (s *Store) Update(c Client, appID, filePath string) (result *UpdateResponse, err error) {
 	const apiPath = "upload/chromewebstore/v1.1/items/"
 	apiURL := urlutil.JoinURL(s.URL, apiPath, appID)
 
 	accessToken, err := c.Authorize()
 	if err != nil {
-		return UpdateResponse{}, err
+		return nil, err
 	}
 
 	client := &http.Client{Timeout: requestTimeout}
 
 	body, err := os.Open(filePath)
 	if err != nil {
-		return UpdateResponse{}, err
+		return nil, err
 	}
 
 	req, err := http.NewRequest(http.MethodPut, apiURL, body)
 	if err != nil {
-		return UpdateResponse{}, err
+		return nil, err
 	}
 
 	req.Header.Add("Authorization", "Bearer "+accessToken)
 
 	res, err := client.Do(req)
 	if err != nil {
-		return UpdateResponse{}, err
+		return nil, err
 	}
 	defer res.Body.Close()
 
 	responseBody, err := io.ReadAll(io.LimitReader(res.Body, maxReadLimit))
 	if err != nil {
-		return UpdateResponse{}, err
+		return nil, err
 	}
 
 	if res.StatusCode != http.StatusOK {
-		return UpdateResponse{}, errors.New(string(responseBody))
+		return nil, errors.New(string(responseBody))
 	}
 
 	err = json.Unmarshal(responseBody, &result)
 	if err != nil {
-		return UpdateResponse{}, err
+		return nil, err
 	}
 
 	return result, nil
@@ -244,39 +244,39 @@ type PublishResponse struct {
 }
 
 // Publish publishes app to the store
-func (s *Store) Publish(c Client, appID string) (result PublishResponse, err error) {
+func (s *Store) Publish(c Client, appID string) (result *PublishResponse, err error) {
 	const apiPath = "chromewebstore/v1.1/items"
 	apiURL := urlutil.JoinURL(s.URL, apiPath, appID, "publish")
 
 	accessToken, err := c.Authorize()
 	if err != nil {
-		return PublishResponse{}, err
+		return nil, err
 	}
 
 	client := &http.Client{Timeout: requestTimeout}
 
 	req, err := http.NewRequest(http.MethodPost, apiURL, nil)
 	if err != nil {
-		return PublishResponse{}, err
+		return nil, err
 	}
 
 	req.Header.Add("Authorization", "Bearer "+accessToken)
 
 	res, err := client.Do(req)
 	if err != nil {
-		return PublishResponse{}, err
+		return nil, err
 	}
 	defer res.Body.Close()
 
 	resultBody, err := io.ReadAll(io.LimitReader(res.Body, maxReadLimit))
 
 	if res.StatusCode != http.StatusOK {
-		return PublishResponse{}, errors.New(string(resultBody))
+		return nil, errors.New(string(resultBody))
 	}
 
 	err = json.Unmarshal(resultBody, &result)
 	if err != nil {
-		return PublishResponse{}, err
+		return nil, err
 	}
 
 	return result, nil

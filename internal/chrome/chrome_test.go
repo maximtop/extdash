@@ -1,12 +1,15 @@
-package chrome
+package chrome_test
 
 import (
 	"encoding/json"
-	"github.com/stretchr/testify/assert"
 	"io"
 	"net/http"
 	"net/http/httptest"
 	"testing"
+
+	"github.com/maximtop/extdash/internal/chrome"
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func createAuthServer(t *testing.T, accessToken string) *httptest.Server {
@@ -14,14 +17,10 @@ func createAuthServer(t *testing.T, accessToken string) *httptest.Server {
 		expectedJSON, err := json.Marshal(map[string]string{
 			"access_token": accessToken,
 		})
-		if err != nil {
-			t.Fatal(err)
-		}
+		require.NoError(t, err)
 
 		_, err = w.Write(expectedJSON)
-		if err != nil {
-			t.Fatal(err)
-		}
+		require.NoError(t, err)
 	}))
 
 	return authServer
@@ -46,19 +45,15 @@ func TestAuthorize(t *testing.T) {
 		expectedJSON, err := json.Marshal(map[string]string{
 			"access_token": accessToken,
 		})
-		if err != nil {
-			t.Fatal(err)
-		}
+		require.NoError(t, err)
 
 		_, err = w.Write(expectedJSON)
-		if err != nil {
-			t.Fatal(err)
-		}
+		require.NoError(t, err)
 	}))
 
 	defer server.Close()
 
-	client := Client{
+	client := chrome.Client{
 		URL:          server.URL,
 		ClientID:     clientID,
 		ClientSecret: clientSecret,
@@ -82,7 +77,7 @@ func TestStatus(t *testing.T) {
 	clientSecret := "test_client_secret"
 	refreshToken := "test_refresh_token"
 
-	status := StatusResponse{
+	status := chrome.StatusResponse{
 		Kind:        "test kind",
 		ID:          appID,
 		PublicKey:   "test public key",
@@ -93,7 +88,7 @@ func TestStatus(t *testing.T) {
 	authServer := createAuthServer(t, accessToken)
 	defer authServer.Close()
 
-	client := Client{
+	client := chrome.Client{
 		URL:          authServer.URL,
 		ClientID:     clientID,
 		ClientSecret: clientSecret,
@@ -113,28 +108,21 @@ func TestStatus(t *testing.T) {
 			"uploadState": status.UploadState,
 			"crxVersion":  status.CrxVersion,
 		})
-
-		if err != nil {
-			t.Fatal(err)
-		}
+		require.NoError(t, err)
 
 		_, err = w.Write(expectedJSON)
-		if err != nil {
-			t.Fatal(err)
-		}
+		require.NoError(t, err)
 	}))
 
 	defer storeServer.Close()
 
-	store := Store{URL: storeServer.URL}
+	store, err := chrome.NewStore(storeServer.URL)
+	require.NoError(t, err)
 
 	actualStatus, err := store.Status(client, appID)
+	require.NoError(t, err)
 
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	assert.Equal(status, actualStatus)
+	assert.Equal(status, *actualStatus)
 }
 
 func TestInsert(t *testing.T) {
@@ -144,7 +132,7 @@ func TestInsert(t *testing.T) {
 	clientID := "test_client_id"
 	clientSecret := "test_client_secret"
 	refreshToken := "test_refresh_token"
-	insertResponse := InsertResponse{
+	insertResponse := chrome.InsertResponse{
 		Kind:        "chromewebstore#item",
 		ID:          "lcfmdcpihnaincdpgibhlncnekofobkc",
 		UploadState: "SUCCESS",
@@ -153,7 +141,7 @@ func TestInsert(t *testing.T) {
 	authServer := createAuthServer(t, accessToken)
 	defer authServer.Close()
 
-	client := Client{
+	client := chrome.Client{
 		URL:          authServer.URL,
 		ClientID:     clientID,
 		ClientSecret: clientSecret,
@@ -166,9 +154,7 @@ func TestInsert(t *testing.T) {
 		assert.Equal(r.Header.Get("Authorization"), "Bearer "+accessToken)
 
 		body, err := io.ReadAll(r.Body)
-		if err != nil {
-			t.Fatal(err)
-		}
+		require.NoError(t, err)
 
 		assert.Equal("test file", string(body))
 
@@ -177,25 +163,21 @@ func TestInsert(t *testing.T) {
 			"id":          insertResponse.ID,
 			"uploadState": insertResponse.UploadState,
 		})
-		if err != nil {
-			t.Fatal(err)
-		}
+		require.NoError(t, err)
 
 		_, err = w.Write(expectedJSON)
-		if err != nil {
-			t.Fatal(err)
-		}
+		require.NoError(t, err)
 	}))
 
 	defer storeServer.Close()
 
-	store := Store{URL: storeServer.URL}
+	store, err := chrome.NewStore(storeServer.URL)
+	require.NoError(t, err)
 
-	result, err := store.Insert(client, "./resources/test.txt")
-	if err != nil {
-		t.Fatal(err)
-	}
-	assert.Equal(insertResponse, result)
+	result, err := store.Insert(client, "./testdata/test.txt")
+	require.NoError(t, err)
+
+	assert.Equal(insertResponse, *result)
 }
 
 func TestUpdate(t *testing.T) {
@@ -207,7 +189,7 @@ func TestUpdate(t *testing.T) {
 	refreshToken := "test_refresh_token"
 	appID := "test_app_id"
 
-	updateResponse := UpdateResponse{
+	updateResponse := chrome.UpdateResponse{
 		Kind:        "test kind",
 		ID:          appID,
 		UploadState: "test success",
@@ -216,7 +198,7 @@ func TestUpdate(t *testing.T) {
 	authServer := createAuthServer(t, accessToken)
 	defer authServer.Close()
 
-	client := Client{
+	client := chrome.Client{
 		URL:          authServer.URL,
 		ClientID:     clientID,
 		ClientSecret: clientSecret,
@@ -229,31 +211,24 @@ func TestUpdate(t *testing.T) {
 		assert.Equal(r.Header.Get("Authorization"), "Bearer "+accessToken)
 
 		body, err := io.ReadAll(r.Body)
-		if err != nil {
-			t.Fatal(err)
-		}
+		require.NoError(t, err)
 
 		assert.Equal("test file", string(body))
 
 		expectedJSON, err := json.Marshal(updateResponse)
-		if err != nil {
-			t.Fatal(err)
-		}
+		require.NoError(t, err)
 
 		_, err = w.Write(expectedJSON)
-		if err != nil {
-			t.Fatal(err)
-		}
+		require.NoError(t, err)
 	}))
 	defer storeServer.Close()
 
-	store := Store{URL: storeServer.URL}
+	store, err := chrome.NewStore(storeServer.URL)
+	require.NoError(t, err)
 
-	result, err := store.Update(client, appID, "resources/test.txt")
-	if err != nil {
-		t.Fatal(err)
-	}
-	assert.Equal(updateResponse, result)
+	result, err := store.Update(client, appID, "testdata/test.txt")
+	require.NoError(t, err)
+	assert.Equal(updateResponse, *result)
 }
 
 func TestPublish(t *testing.T) {
@@ -265,7 +240,7 @@ func TestPublish(t *testing.T) {
 	refreshToken := "test_refresh_token"
 	appID := "test_app_id"
 
-	publishResponse := PublishResponse{
+	publishResponse := chrome.PublishResponse{
 		Kind:         "test_kind",
 		ItemID:       appID,
 		Status:       []string{"ok"},
@@ -275,7 +250,7 @@ func TestPublish(t *testing.T) {
 	authServer := createAuthServer(t, accessToken)
 	defer authServer.Close()
 
-	client := Client{
+	client := chrome.Client{
 		URL:          authServer.URL,
 		ClientID:     clientID,
 		ClientSecret: clientSecret,
@@ -289,22 +264,17 @@ func TestPublish(t *testing.T) {
 		assert.Equal(r.Header.Get("Content-Length"), "0")
 
 		expectedJSON, err := json.Marshal(publishResponse)
-		if err != nil {
-			t.Fatal(err)
-		}
+		require.NoError(t, err)
 
 		_, err = w.Write(expectedJSON)
-		if err != nil {
-			t.Fatal(err)
-		}
+		require.NoError(t, err)
 	}))
 	defer storeServer.Close()
 
-	store := Store{URL: storeServer.URL}
+	store, err := chrome.NewStore(storeServer.URL)
+	require.NoError(t, err)
 
 	result, err := store.Publish(client, appID)
-	if err != nil {
-		t.Fatal(err)
-	}
-	assert.Equal(publishResponse, result)
+	require.NoError(t, err)
+	assert.Equal(publishResponse, *result)
 }

@@ -28,7 +28,12 @@ func main() {
 		log.Panic(err)
 	}
 
-	response, err := edgeStore.Update(edgeClient, "b0e09fcd-ac27-48d0-9cd3-6d27427b1333", "tmp/extension.zip")
+	response, err := edgeStore.Update(
+		edgeClient,
+		"b0e09fcd-ac27-48d0-9cd3-6d27427b1333",
+		"tmp/extension.zip",
+		edge.UpdateOptions{},
+	)
 	if err != nil {
 		log.Panic(err)
 	}

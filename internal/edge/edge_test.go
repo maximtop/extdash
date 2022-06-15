@@ -6,7 +6,6 @@ import (
 	"log"
 	"net/http"
 	"net/http/httptest"
-	"net/http/httputil"
 	"path"
 	"strings"
 	"testing"
@@ -14,6 +13,7 @@ import (
 
 	"github.com/maximtop/extdash/internal/edge"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func newAuthServer(t *testing.T, accessToken string) *httptest.Server {
@@ -151,34 +151,24 @@ func TestUploadStatus(t *testing.T) {
 	authServer := newAuthServer(t, accessToken)
 
 	client, err := edge.NewClient(clientID, clientSecret, authServer.URL)
-	if err != nil {
-		t.Fatal(err)
-	}
+	require.NoError(t, err)
 
 	storeServer := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		assert.Equal(r.Header.Get("Authorization"), "Bearer "+accessToken)
-		assert.Equal(r.URL.Path, "/products/"+appID+"/submissions/draft/package/operations/"+operationID)
+		assert.Equal(r.URL.Path, "/v1/products/"+appID+"/submissions/draft/package/operations/"+operationID)
 
 		response, err := json.Marshal(response)
-		if err != nil {
-			t.Fatal(err)
-		}
+		require.NoError(t, err)
 
 		_, err = w.Write(response)
-		if err != nil {
-			return
-		}
+		require.NoError(t, err)
 	}))
 
 	store, err := edge.NewStore(storeServer.URL)
-	if err != nil {
-		t.Fatal(err)
-	}
+	require.NoError(t, err)
 
 	uploadStatus, err := store.UploadStatus(client, appID, operationID)
-	if err != nil {
-		t.Fatal(err)
-	}
+	require.NoError(t, err)
 
 	assert.Equal(response, uploadStatus)
 }
@@ -189,6 +179,7 @@ func TestUpdate(t *testing.T) {
 	accessToken := "test_access_token"
 	appID := "test_app_id"
 	operationID := "test_operation_id"
+	filepath := "testdata/test.txt"
 
 	t.Run("waits for successful response", func(t *testing.T) {
 		succeededResponse := edge.UploadStatusResponse{
@@ -209,9 +200,6 @@ func TestUpdate(t *testing.T) {
 
 		counter := 0
 		storeServer := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-			debug, _ := httputil.DumpRequest(r, false)
-			log.Println(string(debug))
-
 			if strings.Contains(r.URL.Path, "submissions/draft/package/operations") {
 				if counter == 0 {
 					inProgressResponse, err := json.Marshal(edge.UploadStatusResponse{
@@ -223,36 +211,28 @@ func TestUpdate(t *testing.T) {
 						ErrorCode:       "",
 						Errors:          nil,
 					})
-					if err != nil {
-						t.Fatal(err)
-					}
+					require.NoError(t, err)
 
 					_, err = w.Write(inProgressResponse)
-					if err != nil {
-						t.Fatal(err)
-					}
+					require.NoError(t, err)
 				}
 				if counter == 1 {
 					marshaledSucceededResponse, err := json.Marshal(succeededResponse)
-					if err != nil {
-						t.Fatal(err)
-					}
+					require.NoError(t, err)
+
 					_, err = w.Write(marshaledSucceededResponse)
-					if err != nil {
-						t.Fatal(err)
-					}
+					require.NoError(t, err)
 				}
 				counter++
 
 				return
 			}
 
-			w.WriteHeader(http.StatusAccepted)
 			w.Header().Set("Location", operationID)
+			w.WriteHeader(http.StatusAccepted)
+
 			_, err := w.Write(nil)
-			if err != nil {
-				t.Fatal(err)
-			}
+			require.NoError(t, err)
 		}))
 		defer storeServer.Close() // FIXME check that all servers are closed
 
@@ -261,7 +241,13 @@ func TestUpdate(t *testing.T) {
 			t.Fatal(err)
 		}
 
-		response, err := store.Update(client, appID, "testdata/test.txt", time.Millisecond)
+		response, err := store.Update(
+			client,
+			appID,
+			filepath,
+			edge.UpdateOptions{
+				RetryTimeout: time.Nanosecond,
+			})
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -270,6 +256,45 @@ func TestUpdate(t *testing.T) {
 	})
 
 	t.Run("throws error on timeout", func(t *testing.T) {
-		// FIXME test error on timeout
+		updateOptions := edge.UpdateOptions{
+			RetryTimeout:      time.Millisecond,
+			WaitStatusTimeout: 2 * time.Millisecond,
+		}
+
+		authServer := newAuthServer(t, accessToken)
+		client, err := edge.NewClient(clientID, clientSecret, authServer.URL)
+		require.NoError(t, err)
+
+		storeServer := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			if strings.Contains(r.URL.Path, "submissions/draft/package/operations") {
+				inProgressResponse, err := json.Marshal(edge.UploadStatusResponse{
+					ID:              "",
+					CreatedTime:     "",
+					LastUpdatedTime: "",
+					Status:          edge.InProgress.String(),
+					Message:         "",
+					ErrorCode:       "",
+					Errors:          nil,
+				})
+				require.NoError(t, err)
+
+				_, err = w.Write(inProgressResponse)
+				require.NoError(t, err)
+				return
+			}
+
+			w.Header().Set("Location", operationID)
+			w.WriteHeader(http.StatusAccepted)
+
+			_, err := w.Write(nil)
+			require.NoError(t, err)
+		}))
+
+		store, err := edge.NewStore(storeServer.URL)
+		require.NoError(t, err)
+
+		_, err = store.Update(client, appID, filepath, updateOptions)
+		log.Println(err)
+		assert.ErrorContains(t, err, "update failed due to timeout")
 	})
 }

@@ -124,23 +124,35 @@ type UploadStatusResponse struct {
 	Errors          []string `json:"errors"`
 }
 
-func (s Store) Update(c Client, appID, filepath string, retryTimeout time.Duration) (result UploadStatusResponse, err error) {
-	const defaultRetryTimeout = 5 * time.Second
+type UpdateOptions struct {
+	RetryTimeout      time.Duration
+	WaitStatusTimeout time.Duration
+}
 
-	if retryTimeout == 0 {
-		retryTimeout = defaultRetryTimeout
+func (s Store) Update(c Client, appID, filepath string, updateOptions UpdateOptions) (result UploadStatusResponse, err error) {
+	const defaultRetryTimeout = 5 * time.Second
+	const defaultWaitStatusTimeout = 1 * time.Minute
+
+	if updateOptions.RetryTimeout == 0 {
+		updateOptions.RetryTimeout = defaultRetryTimeout
+	}
+
+	if updateOptions.WaitStatusTimeout == 0 {
+		updateOptions.WaitStatusTimeout = defaultWaitStatusTimeout
 	}
 
 	operationID, err := s.UploadUpdate(c, appID, filepath)
 	if err != nil {
 		return UploadStatusResponse{}, err
 	}
-	// FIXME find out how to move time forward
-	const timeout = 1 * time.Minute
 
 	startTime := time.Now()
 
 	for {
+		if time.Now().After(startTime.Add(updateOptions.WaitStatusTimeout)) {
+			return UploadStatusResponse{}, fmt.Errorf("update failed due to timeout")
+		}
+
 		log.Println("getting upload status...")
 
 		status, err := s.UploadStatus(c, appID, string(operationID))
@@ -149,7 +161,7 @@ func (s Store) Update(c Client, appID, filepath string, retryTimeout time.Durati
 		}
 
 		if status.Status == InProgress.String() {
-			time.Sleep(retryTimeout)
+			time.Sleep(updateOptions.RetryTimeout)
 
 			continue
 		}
@@ -160,10 +172,6 @@ func (s Store) Update(c Client, appID, filepath string, retryTimeout time.Durati
 
 		if status.Status == Failed.String() {
 			return UploadStatusResponse{}, fmt.Errorf("update failed due to %s, full error %+v", status.Message, status)
-		}
-
-		if time.Now().After(startTime.Add(timeout)) {
-			return UploadStatusResponse{}, fmt.Errorf("update failed due to timeout")
 		}
 	}
 }
@@ -203,6 +211,10 @@ func (s Store) UploadUpdate(c Client, appID, filepath string) (result []byte, er
 	}
 
 	operationID := res.Header.Get("Location")
+
+	if operationID == "" {
+		return nil, fmt.Errorf("received empty operation ID")
+	}
 
 	return []byte(operationID), nil
 }

@@ -27,14 +27,10 @@ func newAuthServer(t *testing.T, accessToken string) *httptest.Server {
 		}
 
 		responseData, err := json.Marshal(response)
-		if err != nil {
-			t.Fatal(err)
-		}
+		require.NoError(t, err)
 
 		_, err = w.Write(responseData)
-		if err != nil {
-			t.Fatal(err)
-		}
+		require.NoError(t, err)
 	}))
 }
 
@@ -58,25 +54,17 @@ func TestAuthorize(t *testing.T) {
 			ExpiresIn:   0,
 			AccessToken: accessToken,
 		})
-		if err != nil {
-			t.Fatal(err)
-		}
+		require.NoError(t, err)
 
 		_, err = w.Write(response)
-		if err != nil {
-			t.Fatal(err)
-		}
+		require.NoError(t, err)
 	}))
 
 	client, err := edge.NewClient(clientID, clientSecret, authServer.URL)
-	if err != nil {
-		t.Fatal(err)
-	}
+	require.NoError(t, err)
 
 	actualAccessToken, err := client.Authorize()
-	if err != nil {
-		t.Fatal(err)
-	}
+	require.NoError(t, err)
 
 	assert.Equal(accessToken, actualAccessToken)
 }
@@ -92,9 +80,7 @@ func TestUploadUpdate(t *testing.T) {
 	authServer := newAuthServer(t, accessToken)
 
 	client, err := edge.NewClient(clientID, clientSecret, authServer.URL)
-	if err != nil {
-		t.Fatal(err)
-	}
+	require.NoError(t, err)
 
 	storeServer := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		assert.Equal(http.MethodPost, r.Method)
@@ -103,9 +89,7 @@ func TestUploadUpdate(t *testing.T) {
 		assert.Equal(path.Join("/v1/products", appID, "submissions/draft/package"), r.URL.Path)
 
 		responseBody, err := io.ReadAll(r.Body)
-		if err != nil {
-			t.Fatal(err)
-		}
+		require.NoError(t, err)
 
 		assert.Equal("test_file_content", string(responseBody))
 
@@ -113,20 +97,14 @@ func TestUploadUpdate(t *testing.T) {
 		w.WriteHeader(http.StatusAccepted)
 
 		_, err = w.Write(nil)
-		if err != nil {
-			t.Fatal(err)
-		}
+		require.NoError(t, err)
 	}))
 
 	store, err := edge.NewStore(storeServer.URL)
-	if err != nil {
-		t.Fatal(err)
-	}
+	require.NoError(t, err)
 
 	actualUpdateResponse, err := store.UploadUpdate(client, appID, "./testdata/test.txt")
-	if err != nil {
-		t.Fatal(err)
-	}
+	require.NoError(t, err)
 
 	assert.Equal(operationID, string(actualUpdateResponse))
 }
@@ -194,9 +172,7 @@ func TestUpdate(t *testing.T) {
 
 		authServer := newAuthServer(t, accessToken)
 		client, err := edge.NewClient(clientID, clientSecret, authServer.URL)
-		if err != nil {
-			t.Fatal(err)
-		}
+		require.NoError(t, err)
 
 		counter := 0
 		storeServer := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -237,9 +213,7 @@ func TestUpdate(t *testing.T) {
 		defer storeServer.Close() // FIXME check that all servers are closed
 
 		store, err := edge.NewStore(storeServer.URL)
-		if err != nil {
-			t.Fatal(err)
-		}
+		require.NoError(t, err)
 
 		response, err := store.Update(
 			client,
@@ -248,9 +222,7 @@ func TestUpdate(t *testing.T) {
 			edge.UpdateOptions{
 				RetryTimeout: time.Nanosecond,
 			})
-		if err != nil {
-			t.Fatal(err)
-		}
+		require.NoError(t, err)
 
 		assert.Equal(t, succeededResponse, *response)
 	})

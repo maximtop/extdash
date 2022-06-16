@@ -6,15 +6,14 @@ import (
 
 	"github.com/maximtop/extdash/internal/urlutil"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func TestJoinURL(t *testing.T) {
 	t.Run("Sequential joins do not update same url", func(t *testing.T) {
 		const rawBaseURL = "https://example.org"
 		baseURL, err := url.Parse(rawBaseURL)
-		if err != nil {
-			t.Fatal(err)
-		}
+		require.NoError(t, err)
 
 		part := "test"
 		joinedURL := urlutil.JoinURL(baseURL, part)

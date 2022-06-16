@@ -3,7 +3,7 @@ package edge
 import (
 	"encoding/json"
 	"fmt"
-	"io/ioutil"
+	"io"
 	"log"
 	"net/http"
 	"net/url"
@@ -63,7 +63,7 @@ func (c *Client) Authorize() (accessToken string, err error) {
 		return "", err
 	}
 
-	responseBody, err := ioutil.ReadAll(response.Body)
+	responseBody, err := io.ReadAll(response.Body)
 	if err != nil {
 		return "", err
 	}
@@ -93,15 +93,15 @@ func NewStore(rawURL string) (store Store, err error) {
 	}, nil
 }
 
-type UploadStatus int64
+type Status int64
 
 const (
-	InProgress UploadStatus = iota
+	InProgress Status = iota
 	Succeeded
 	Failed
 )
 
-func (u UploadStatus) String() string {
+func (u Status) String() string {
 	switch u {
 	case InProgress:
 		return "InProgress"
@@ -114,14 +114,18 @@ func (u UploadStatus) String() string {
 	return "unknown"
 }
 
+type StatusError struct {
+	Message string `json:"message"`
+}
+
 type UploadStatusResponse struct {
-	ID              string   `json:"id"`
-	CreatedTime     string   `json:"createdTime"`
-	LastUpdatedTime string   `json:"lastUpdatedTime"`
-	Status          string   `json:"status"`
-	Message         string   `json:"message"`
-	ErrorCode       string   `json:"errorCode"`
-	Errors          []string `json:"errors"`
+	ID              string        `json:"id"`
+	CreatedTime     string        `json:"createdTime"`
+	LastUpdatedTime string        `json:"lastUpdatedTime"`
+	Status          string        `json:"status"`
+	Message         string        `json:"message"`
+	ErrorCode       string        `json:"errorCode"`
+	Errors          []StatusError `json:"errors"`
 }
 
 type UpdateOptions struct {
@@ -129,7 +133,8 @@ type UpdateOptions struct {
 	WaitStatusTimeout time.Duration
 }
 
-func (s Store) Update(c Client, appID, filepath string, updateOptions UpdateOptions) (result UploadStatusResponse, err error) {
+// Update uploads the update to the store and waits for the update to be processed.
+func (s Store) Update(c Client, appID, filepath string, updateOptions UpdateOptions) (result *UploadStatusResponse, err error) {
 	const defaultRetryTimeout = 5 * time.Second
 	const defaultWaitStatusTimeout = 1 * time.Minute
 
@@ -143,21 +148,21 @@ func (s Store) Update(c Client, appID, filepath string, updateOptions UpdateOpti
 
 	operationID, err := s.UploadUpdate(c, appID, filepath)
 	if err != nil {
-		return UploadStatusResponse{}, err
+		return nil, err
 	}
 
 	startTime := time.Now()
 
 	for {
 		if time.Now().After(startTime.Add(updateOptions.WaitStatusTimeout)) {
-			return UploadStatusResponse{}, fmt.Errorf("update failed due to timeout")
+			return nil, fmt.Errorf("update failed due to timeout")
 		}
 
 		log.Println("getting upload status...")
 
 		status, err := s.UploadStatus(c, appID, string(operationID))
 		if err != nil {
-			return UploadStatusResponse{}, err
+			return nil, err
 		}
 
 		if status.Status == InProgress.String() {
@@ -171,11 +176,12 @@ func (s Store) Update(c Client, appID, filepath string, updateOptions UpdateOpti
 		}
 
 		if status.Status == Failed.String() {
-			return UploadStatusResponse{}, fmt.Errorf("update failed due to %s, full error %+v", status.Message, status)
+			return nil, fmt.Errorf("update failed due to %s, full error %+v", status.Message, status)
 		}
 	}
 }
 
+// UploadUpdate uploads the update to the store.
 func (s Store) UploadUpdate(c Client, appID, filepath string) (result []byte, err error) {
 	const apiPath = "/v1/products"
 	apiURL := urlutil.JoinURL(s.URL, apiPath, appID, "submissions/draft/package")
@@ -219,18 +225,19 @@ func (s Store) UploadUpdate(c Client, appID, filepath string) (result []byte, er
 	return []byte(operationID), nil
 }
 
-func (s Store) UploadStatus(c Client, appID, operationID string) (response UploadStatusResponse, err error) {
+// UploadStatus returns the status of the upload.
+func (s Store) UploadStatus(c Client, appID, operationID string) (response *UploadStatusResponse, err error) {
 	apiPath := "v1/products"
 	apiURL := urlutil.JoinURL(s.URL, apiPath, appID, "submissions/draft/package/operations", operationID)
 
 	req, err := http.NewRequest(http.MethodGet, apiURL, nil)
 	if err != nil {
-		return UploadStatusResponse{}, err
+		return nil, err
 	}
 
 	accessToken, err := c.Authorize()
 	if err != nil {
-		return UploadStatusResponse{}, err
+		return nil, err
 	}
 
 	req.Header.Set("Authorization", "Bearer "+accessToken)
@@ -241,18 +248,123 @@ func (s Store) UploadStatus(c Client, appID, operationID string) (response Uploa
 
 	res, err := client.Do(req)
 	if err != nil {
-		return UploadStatusResponse{}, err
+		return nil, err
 	}
 
-	responseBody, err := ioutil.ReadAll(res.Body)
+	responseBody, err := io.ReadAll(res.Body)
+	log.Println(string(responseBody))
 	if err != nil {
-		return UploadStatusResponse{}, err
+		return nil, err
 	}
 
 	err = json.Unmarshal(responseBody, &response)
 	if err != nil {
-		return UploadStatusResponse{}, err
+		return nil, err
 	}
 
 	return response, nil
+}
+
+// PublishExtension publishes the extension to the store and returns operationID.
+func (s Store) PublishExtension(c Client, appID string) (result string, err error) {
+	apiPath := "/v1/products/"
+	apiURL := urlutil.JoinURL(s.URL, apiPath, appID, "submissions")
+
+	// TODO (maximtop): consider adding body to the request with notes for reviewers.
+	req, err := http.NewRequest(http.MethodPost, apiURL, nil)
+	if err != nil {
+		return "", err
+	}
+
+	accessToken, err := c.Authorize()
+	if err != nil {
+		return "", err
+	}
+
+	req.Header.Set("Authorization", "Bearer "+accessToken)
+
+	client := http.Client{Timeout: requestTimeout}
+
+	res, err := client.Do(req)
+	if err != nil {
+		return "", err
+	}
+
+	if res.StatusCode != http.StatusAccepted {
+		return "", fmt.Errorf("received wrong response %s", res.Status)
+	}
+
+	operationID := res.Header.Get("Location")
+
+	if operationID == "" {
+		return "", fmt.Errorf("received empty operation ID")
+	}
+
+	return operationID, nil
+}
+
+type PublishStatusResponse struct {
+	ID              string        `json:"id"`
+	CreatedTime     string        `json:"createdTime"`
+	LastUpdatedTime string        `json:"lastUpdatedTime"`
+	Status          string        `json:"status"`
+	Message         string        `json:"message"`
+	ErrorCode       string        `json:"errorCode"`
+	Errors          []StatusError `json:"errors"`
+}
+
+// PublishStatus returns the status of the extension publish.
+func (s Store) PublishStatus(c Client, appID, operationID string) (response *PublishStatusResponse, err error) {
+	apiPath := "v1/products/"
+	apiURL := urlutil.JoinURL(s.URL, apiPath, appID, "submissions/operations", operationID)
+
+	accessToken, err := c.Authorize()
+	if err != nil {
+		return nil, err
+	}
+
+	req, err := http.NewRequest(http.MethodGet, apiURL, nil)
+	if err != nil {
+		return nil, err
+	}
+
+	req.Header.Set("Authorization", "Bearer "+accessToken)
+
+	client := http.Client{Timeout: requestTimeout}
+
+	res, err := client.Do(req)
+	if err != nil {
+		return nil, err
+	}
+
+	if res.StatusCode != http.StatusOK {
+		return nil, fmt.Errorf("received wrong response %s", res.Status)
+	}
+
+	responseBody, err := io.ReadAll(res.Body)
+	if err != nil {
+		return nil, err
+	}
+
+	response = &PublishStatusResponse{}
+	err = json.Unmarshal(responseBody, response)
+	if err != nil {
+		return nil, err
+	}
+
+	if response.Status == Failed.String() {
+		return nil, fmt.Errorf("publish failed due to \"%s\", full error: %+v", response.Message, response)
+	}
+
+	return response, nil
+}
+
+// Publish publishes the extension to the store.
+func (s Store) Publish(c Client, appID string) (response *PublishStatusResponse, err error) {
+	operationID, err := s.PublishExtension(c, appID)
+	if err != nil {
+		return nil, err
+	}
+
+	return s.PublishStatus(c, appID, operationID)
 }

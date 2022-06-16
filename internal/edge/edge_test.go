@@ -2,7 +2,7 @@ package edge_test
 
 import (
 	"encoding/json"
-	"io/ioutil"
+	"io"
 	"log"
 	"net/http"
 	"net/http/httptest"
@@ -102,7 +102,7 @@ func TestUploadUpdate(t *testing.T) {
 		assert.Equal("application/zip", r.Header.Get("Content-Type"))
 		assert.Equal(path.Join("/v1/products", appID, "submissions/draft/package"), r.URL.Path)
 
-		responseBody, err := ioutil.ReadAll(r.Body)
+		responseBody, err := io.ReadAll(r.Body)
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -141,7 +141,7 @@ func TestUploadStatus(t *testing.T) {
 		Status:          "Failed",
 		Message:         "Error Message.",
 		ErrorCode:       "Error Code",
-		Errors:          []string{"list of errors"},
+		Errors:          []edge.StatusError{{Message: "test error"}},
 	}
 	clientID := "test_client_id"
 	clientSecret := "test_client_secret"
@@ -170,7 +170,7 @@ func TestUploadStatus(t *testing.T) {
 	uploadStatus, err := store.UploadStatus(client, appID, operationID)
 	require.NoError(t, err)
 
-	assert.Equal(response, uploadStatus)
+	assert.Equal(response, *uploadStatus)
 }
 
 func TestUpdate(t *testing.T) {
@@ -252,7 +252,7 @@ func TestUpdate(t *testing.T) {
 			t.Fatal(err)
 		}
 
-		assert.Equal(t, succeededResponse, response)
+		assert.Equal(t, succeededResponse, *response)
 	})
 
 	t.Run("throws error on timeout", func(t *testing.T) {
@@ -297,4 +297,76 @@ func TestUpdate(t *testing.T) {
 		log.Println(err)
 		assert.ErrorContains(t, err, "update failed due to timeout")
 	})
+}
+
+func TestPublishExtension(t *testing.T) {
+	clientID := "test_client_id"
+	clientSecret := "test_client_secret"
+	accessToken := "test_access_token"
+	appID := "test_app_id"
+	operationID := "test_operation_id"
+
+	authServer := newAuthServer(t, accessToken)
+
+	client, err := edge.NewClient(clientID, clientSecret, authServer.URL)
+	require.NoError(t, err)
+
+	storeServer := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		assert.Equal(t, "/v1/products/"+appID+"/submissions", r.URL.Path)
+		assert.Equal(t, "POST", r.Method)
+		assert.Equal(t, r.Header.Get("Authorization"), "Bearer "+accessToken)
+
+		w.Header().Set("Location", operationID)
+		w.WriteHeader(http.StatusAccepted)
+		_, err := w.Write([]byte(nil))
+		require.NoError(t, err)
+	}))
+	store, err := edge.NewStore(storeServer.URL)
+	require.NoError(t, err)
+
+	response, err := store.PublishExtension(client, appID)
+	require.NoError(t, err)
+
+	assert.Equal(t, operationID, response)
+}
+
+func TestPublishStatus(t *testing.T) {
+	clientID := "test_client_id"
+	clientSecret := "test_client_secret"
+	accessToken := "test_access_token"
+	appID := "test_app_id"
+	operationID := "test_operation_id"
+	statusResponse := edge.PublishStatusResponse{
+		ID:              "",
+		CreatedTime:     "",
+		LastUpdatedTime: "",
+		Status:          "Succeeded",
+		Message:         "",
+		ErrorCode:       "",
+		Errors:          nil,
+	}
+
+	authServer := newAuthServer(t, accessToken)
+	client, err := edge.NewClient(clientID, clientSecret, authServer.URL)
+	require.NoError(t, err)
+
+	storeServer := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		assert.Equal(t, "/v1/products/"+appID+"/submissions/operations/"+operationID, r.URL.Path)
+		assert.Equal(t, "GET", r.Method)
+		assert.Equal(t, "Bearer "+accessToken, r.Header.Get("Authorization"))
+
+		response, err := json.Marshal(statusResponse)
+		require.NoError(t, err)
+
+		_, err = w.Write(response)
+		require.NoError(t, err)
+	}))
+
+	store, err := edge.NewStore(storeServer.URL)
+	require.NoError(t, err)
+
+	response, err := store.PublishStatus(client, appID, operationID)
+	require.NoError(t, err)
+
+	assert.Equal(t, statusResponse, *response)
 }

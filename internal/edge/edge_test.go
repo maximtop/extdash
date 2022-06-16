@@ -106,7 +106,7 @@ func TestUploadUpdate(t *testing.T) {
 	actualUpdateResponse, err := store.UploadUpdate(client, appID, "./testdata/test.txt")
 	require.NoError(t, err)
 
-	assert.Equal(operationID, string(actualUpdateResponse))
+	assert.Equal(operationID, actualUpdateResponse)
 }
 
 func TestUploadStatus(t *testing.T) {

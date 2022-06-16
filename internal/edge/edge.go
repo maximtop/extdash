@@ -182,24 +182,24 @@ func (s Store) Update(c Client, appID, filepath string, updateOptions UpdateOpti
 }
 
 // UploadUpdate uploads the update to the store.
-func (s Store) UploadUpdate(c Client, appID, filepath string) (result []byte, err error) {
+func (s Store) UploadUpdate(c Client, appID, filepath string) (result string, err error) {
 	const apiPath = "/v1/products"
 	apiURL := urlutil.JoinURL(s.URL, apiPath, appID, "submissions/draft/package")
 
 	file, err := os.Open(filepath)
 	if err != nil {
-		return nil, err
+		return "", err
 	}
 	defer file.Close()
 
 	req, err := http.NewRequest(http.MethodPost, apiURL, file)
 	if err != nil {
-		return nil, err
+		return "", err
 	}
 
 	accessToken, err := c.Authorize()
 	if err != nil {
-		return nil, err
+		return "", err
 	}
 
 	req.Header.Add("Authorization", "Bearer "+accessToken)
@@ -209,20 +209,20 @@ func (s Store) UploadUpdate(c Client, appID, filepath string) (result []byte, er
 
 	res, err := client.Do(req)
 	if err != nil {
-		return nil, err
+		return "", err
 	}
 
 	if res.StatusCode != http.StatusAccepted {
-		return nil, fmt.Errorf("received wrong response %s", res.Status)
+		return "", fmt.Errorf("received wrong response %s", res.Status)
 	}
 
 	operationID := res.Header.Get("Location")
 
 	if operationID == "" {
-		return nil, fmt.Errorf("received empty operation ID")
+		return "", fmt.Errorf("received empty operation ID")
 	}
 
-	return []byte(operationID), nil
+	return operationID, nil
 }
 
 // UploadStatus returns the status of the upload.

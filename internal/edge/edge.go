@@ -16,12 +16,14 @@ import (
 
 const requestTimeout = 5 * time.Minute
 
+// Client represent the edge client.
 type Client struct {
 	ClientID       string
 	ClientSecret   string
 	AccessTokenURL *url.URL
 }
 
+// NewClient creates a new edge Client instance.
 func NewClient(clientID, clientSecret, rawAccessTokenURL string) (client Client, err error) {
 	accessTokenURL, err := url.Parse(rawAccessTokenURL)
 	if err != nil {
@@ -41,6 +43,7 @@ type AuthorizeResponse struct {
 	AccessToken string `json:"access_token"`
 }
 
+// Authorize returns the access token.
 func (c *Client) Authorize() (accessToken string, err error) {
 	form := url.Values{
 		"client_id":     {c.ClientID},
@@ -78,10 +81,12 @@ func (c *Client) Authorize() (accessToken string, err error) {
 	return authorizeResponse.AccessToken, nil
 }
 
+// Store represents the edge store instance
 type Store struct {
 	URL *url.URL
 }
 
+// NewStore creates a new edge Store instance.
 func NewStore(rawURL string) (store Store, err error) {
 	URL, err := url.Parse(rawURL)
 	if err != nil {
@@ -93,6 +98,7 @@ func NewStore(rawURL string) (store Store, err error) {
 	}, nil
 }
 
+// Status represents the status of the update or publish.
 type Status int64
 
 const (
@@ -101,6 +107,7 @@ const (
 	Failed
 )
 
+// String returns the string representation of the status.
 func (u Status) String() string {
 	switch u {
 	case InProgress:

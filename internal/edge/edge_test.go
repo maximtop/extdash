@@ -78,6 +78,7 @@ func TestUploadUpdate(t *testing.T) {
 	operationID := "test_operation_id"
 
 	authServer := newAuthServer(t, accessToken)
+	defer authServer.Close()
 
 	client, err := edge.NewClient(clientID, clientSecret, authServer.URL)
 	require.NoError(t, err)
@@ -99,6 +100,7 @@ func TestUploadUpdate(t *testing.T) {
 		_, err = w.Write(nil)
 		require.NoError(t, err)
 	}))
+	defer storeServer.Close()
 
 	store, err := edge.NewStore(storeServer.URL)
 	require.NoError(t, err)
@@ -127,6 +129,7 @@ func TestUploadStatus(t *testing.T) {
 	operationID := "test_operation_id"
 
 	authServer := newAuthServer(t, accessToken)
+	defer authServer.Close()
 
 	client, err := edge.NewClient(clientID, clientSecret, authServer.URL)
 	require.NoError(t, err)
@@ -141,6 +144,7 @@ func TestUploadStatus(t *testing.T) {
 		_, err = w.Write(response)
 		require.NoError(t, err)
 	}))
+	defer storeServer.Close()
 
 	store, err := edge.NewStore(storeServer.URL)
 	require.NoError(t, err)
@@ -171,6 +175,8 @@ func TestUpdate(t *testing.T) {
 		}
 
 		authServer := newAuthServer(t, accessToken)
+		defer authServer.Close()
+
 		client, err := edge.NewClient(clientID, clientSecret, authServer.URL)
 		require.NoError(t, err)
 
@@ -210,7 +216,7 @@ func TestUpdate(t *testing.T) {
 			_, err := w.Write(nil)
 			require.NoError(t, err)
 		}))
-		defer storeServer.Close() // FIXME check that all servers are closed
+		defer storeServer.Close()
 
 		store, err := edge.NewStore(storeServer.URL)
 		require.NoError(t, err)
@@ -234,6 +240,8 @@ func TestUpdate(t *testing.T) {
 		}
 
 		authServer := newAuthServer(t, accessToken)
+		defer authServer.Close()
+
 		client, err := edge.NewClient(clientID, clientSecret, authServer.URL)
 		require.NoError(t, err)
 
@@ -261,6 +269,7 @@ func TestUpdate(t *testing.T) {
 			_, err := w.Write(nil)
 			require.NoError(t, err)
 		}))
+		defer storeServer.Close()
 
 		store, err := edge.NewStore(storeServer.URL)
 		require.NoError(t, err)
@@ -279,6 +288,7 @@ func TestPublishExtension(t *testing.T) {
 	operationID := "test_operation_id"
 
 	authServer := newAuthServer(t, accessToken)
+	defer authServer.Close()
 
 	client, err := edge.NewClient(clientID, clientSecret, authServer.URL)
 	require.NoError(t, err)
@@ -293,6 +303,8 @@ func TestPublishExtension(t *testing.T) {
 		_, err := w.Write([]byte(nil))
 		require.NoError(t, err)
 	}))
+	defer storeServer.Close()
+
 	store, err := edge.NewStore(storeServer.URL)
 	require.NoError(t, err)
 
@@ -319,6 +331,8 @@ func TestPublishStatus(t *testing.T) {
 	}
 
 	authServer := newAuthServer(t, accessToken)
+	defer authServer.Close()
+
 	client, err := edge.NewClient(clientID, clientSecret, authServer.URL)
 	require.NoError(t, err)
 
@@ -333,6 +347,7 @@ func TestPublishStatus(t *testing.T) {
 		_, err = w.Write(response)
 		require.NoError(t, err)
 	}))
+	defer storeServer.Close()
 
 	store, err := edge.NewStore(storeServer.URL)
 	require.NoError(t, err)

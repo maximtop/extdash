@@ -80,6 +80,7 @@ func TestInsert(t *testing.T) {
 		_, err = w.Write([]byte(status))
 		require.NoError(t, err)
 	}))
+	defer storeServer.Close()
 
 	store, err := firefox.NewStore(storeServer.URL)
 	require.NoError(t, err)
@@ -118,6 +119,7 @@ func TestUpdate(t *testing.T) {
 		_, err = w.Write([]byte(response))
 		require.NoError(t, err)
 	}))
+	defer storeServer.Close()
 
 	store, err := firefox.NewStore(storeServer.URL)
 	require.NoError(t, err)

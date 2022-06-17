@@ -115,7 +115,6 @@ func TestStatus(t *testing.T) {
 		_, err = w.Write(expectedJSON)
 		require.NoError(t, err)
 	}))
-
 	defer storeServer.Close()
 
 	store, err := chrome.NewStore(storeServer.URL)
@@ -170,7 +169,6 @@ func TestInsert(t *testing.T) {
 		_, err = w.Write(expectedJSON)
 		require.NoError(t, err)
 	}))
-
 	defer storeServer.Close()
 
 	store, err := chrome.NewStore(storeServer.URL)

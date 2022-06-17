@@ -17,7 +17,7 @@ import (
 	"github.com/maximtop/extdash/internal/urlutil"
 )
 
-// TODO add method for signing standalone extension
+// TODO(maximtop): add method for signing standalone extension
 
 // Client describes client structure.
 type Client struct {
@@ -32,7 +32,7 @@ type ClientConfig struct {
 	Now          func() int64
 }
 
-// TODO (maximtop): consider to make this constant an option.
+// TODO(maximtop): consider to make this constant an option.
 const requestTimeout = 20 * time.Minute
 
 // maxReadLimit limits response size returned from the store api.
@@ -150,7 +150,7 @@ func (s *Store) Status(c Client, appID string) (result []byte, err error) {
 		return nil, fmt.Errorf("got code %d, body: %q", res.StatusCode, body)
 	}
 
-	// TODO (maximtop): make identical responses for all browsers
+	// TODO(maximtop): make identical responses for all browsers
 	return body, nil
 }
 

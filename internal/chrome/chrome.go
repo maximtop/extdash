@@ -25,6 +25,10 @@ type Client struct {
 // maxReadLimit limits response size returned from the store.
 const maxReadLimit = 10 * fileutil.MB
 
+type AuthorizeResponse struct {
+	AccessToken string `json:"access_token"`
+}
+
 // Authorize retrieves access token.
 func (c *Client) Authorize() (accessToken string, err error) {
 	data := url.Values{
@@ -46,10 +50,9 @@ func (c *Client) Authorize() (accessToken string, err error) {
 		return "", fmt.Errorf("[Authorize] %w", err)
 	}
 
-	// TODO (maximtop) describe response with type
-	var result map[string]interface{}
+	var result = &AuthorizeResponse{}
 
-	err = json.Unmarshal(body, &result)
+	err = json.Unmarshal(body, result)
 	if err != nil {
 		return "", err
 	}
@@ -58,12 +61,7 @@ func (c *Client) Authorize() (accessToken string, err error) {
 		return "", fmt.Errorf("got code %d, body: %q", res.StatusCode, body)
 	}
 
-	accessToken, ok := result["access_token"].(string)
-	if !ok {
-		return "", fmt.Errorf("got code %d, body: %q", res.StatusCode, body)
-	}
-
-	return accessToken, nil
+	return result.AccessToken, nil
 }
 
 // Store describes structure of the store.

@@ -10,7 +10,7 @@ import (
 	"net/http"
 	"net/url"
 	"os"
-	"path/filepath"
+	"path"
 	"strconv"
 	"time"
 
@@ -20,12 +20,11 @@ import (
 )
 
 // AMO main url is https://addons.mozilla.org/
-// Please use our AMO dev environment at https://addons-dev.allizom.org/ or the AMO stage
+// Please use AMO dev environment at https://addons-dev.allizom.org/ or the AMO stage
 // environment at https://addons.allizom.org/ for testing.
 // credential keys can't be sent via email, so you need to ask them in the chat https://matrix.to/#/#amo:mozilla.org
 // last time I've asked them from mat https://matrix.to/#/@mat:mozilla.org
-
-// TODO(maximtop): add method for signing standalone extension
+// signed xpi build from dev environments is corrupted, so you need to build it from the production environment
 
 // Client describes client structure.
 type Client struct {
@@ -329,6 +328,8 @@ type UploadStatus struct {
 
 type ReviewedStatus bool
 
+// UnmarshalJSON parses ReviewedStatus.
+// used because review status may be boolean or string
 func (w *ReviewedStatus) UnmarshalJSON(b []byte) error {
 	stringVal := string(b)
 
@@ -721,7 +722,7 @@ func (s *Store) DownloadSigned(c Client, appID, version string) (err error) {
 		return err
 	}
 
-	var filename = filepath.Base(parsedURL.Path)
+	var filename = path.Base(parsedURL.Path)
 
 	// save response to file
 	file, err := os.Create(filename)

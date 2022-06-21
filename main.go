@@ -64,7 +64,7 @@ func main() {
 	app.Commands = []*cli.Command{
 		{
 			Name:  "status",
-			Usage: "returns extension info by id",
+			Usage: "returns extension info",
 			Subcommands: []*cli.Command{
 				{
 					Name:  "firefox",
@@ -146,7 +146,7 @@ func main() {
 		},
 		{
 			Name:  "update",
-			Usage: "uploads new version of extension to the chrome web store",
+			Usage: "uploads new version of extension to the store",
 			Subcommands: []*cli.Command{
 				{
 					Name:  "chrome",
@@ -213,7 +213,7 @@ func main() {
 		},
 		{
 			Name:  "publish",
-			Usage: "publishes extension in the chrome web store",
+			Usage: "publishes extension to the store",
 			Subcommands: []*cli.Command{
 				{
 					Name:  "chrome",
@@ -249,6 +249,29 @@ func main() {
 						}
 
 						fmt.Println(result)
+
+						return nil
+					},
+				},
+			},
+		},
+		{
+			Name:  "sign",
+			Usage: "signs extension in the store",
+			Subcommands: []*cli.Command{
+				{
+					Name:  "firefox",
+					Usage: "signs extension in the firefox store",
+					Flags: []cli.Flag{
+						fileFlag,
+					},
+					Action: func(c *cli.Context) error {
+						filepath := c.String("file")
+
+						err := firefoxStore.Sign(firefoxClient, filepath)
+						if err != nil {
+							return err
+						}
 
 						return nil
 					},

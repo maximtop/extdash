@@ -1,0 +1,22 @@
+linters:
+  enable:
+    - deadcode
+    - errcheck
+    - govet
+    - ineffassign
+    - staticcheck
+    - structcheck
+    - unused
+    - varcheck
+    - bodyclose
+    - depguard
+    - dupl
+    - gocyclo
+    - goimports
+    - golint
+    - gosec
+    - misspell
+    - stylecheck
+    - unconvert
+  disable-all: true
+  fast: true

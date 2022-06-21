@@ -13,6 +13,8 @@ import (
 )
 
 func createAuthServer(t *testing.T, accessToken string) *httptest.Server {
+	t.Helper()
+
 	authServer := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		expectedJSON, err := json.Marshal(map[string]string{
 			"access_token": accessToken,
@@ -113,7 +115,6 @@ func TestStatus(t *testing.T) {
 		_, err = w.Write(expectedJSON)
 		require.NoError(t, err)
 	}))
-
 	defer storeServer.Close()
 
 	store, err := chrome.NewStore(storeServer.URL)
@@ -168,7 +169,6 @@ func TestInsert(t *testing.T) {
 		_, err = w.Write(expectedJSON)
 		require.NoError(t, err)
 	}))
-
 	defer storeServer.Close()
 
 	store, err := chrome.NewStore(storeServer.URL)

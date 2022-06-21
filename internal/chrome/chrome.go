@@ -14,7 +14,7 @@ import (
 	"github.com/maximtop/extdash/internal/urlutil"
 )
 
-// Client describes structure of the client
+// Client describes structure of the client.
 type Client struct {
 	URL          string
 	ClientID     string
@@ -22,10 +22,14 @@ type Client struct {
 	RefreshToken string
 }
 
-// maxReadLimit limits response size returned from the store
+// maxReadLimit limits response size returned from the store.
 const maxReadLimit = 10 * fileutil.MB
 
-// Authorize retrieves access token
+type AuthorizeResponse struct {
+	AccessToken string `json:"access_token"`
+}
+
+// Authorize retrieves access token.
 func (c *Client) Authorize() (accessToken string, err error) {
 	data := url.Values{
 		"client_id":     {c.ClientID},
@@ -46,10 +50,9 @@ func (c *Client) Authorize() (accessToken string, err error) {
 		return "", fmt.Errorf("[Authorize] %w", err)
 	}
 
-	// TODO (maximtop) describe response with type
-	var result map[string]interface{}
+	var result = &AuthorizeResponse{}
 
-	err = json.Unmarshal(body, &result)
+	err = json.Unmarshal(body, result)
 	if err != nil {
 		return "", err
 	}
@@ -58,16 +61,15 @@ func (c *Client) Authorize() (accessToken string, err error) {
 		return "", fmt.Errorf("got code %d, body: %q", res.StatusCode, body)
 	}
 
-	accessToken = result["access_token"].(string)
-	return accessToken, nil
+	return result.AccessToken, nil
 }
 
-// Store describes structure of the store
+// Store describes structure of the store.
 type Store struct {
 	URL *url.URL
 }
 
-// NewStore parses url and creates new store instance
+// NewStore parses url and creates new store instance.
 func NewStore(rawURL string) (s Store, err error) {
 	URL, err := url.Parse(rawURL)
 	if err != nil {
@@ -77,7 +79,7 @@ func NewStore(rawURL string) (s Store, err error) {
 	return Store{URL: URL}, nil
 }
 
-// StatusResponse describes status response fields
+// StatusResponse describes status response fields.
 type StatusResponse struct {
 	Kind        string
 	ID          string
@@ -88,7 +90,7 @@ type StatusResponse struct {
 
 const requestTimeout = 5 * time.Minute
 
-// Status retrieves status of the extension in the store
+// Status retrieves status of the extension in the store.
 func (s *Store) Status(c Client, appID string) (result *StatusResponse, err error) {
 	const apiPath = "chromewebstore/v1.1/items"
 	apiURL := urlutil.JoinURL(s.URL, apiPath, appID)
@@ -99,11 +101,14 @@ func (s *Store) Status(c Client, appID string) (result *StatusResponse, err erro
 	}
 
 	client := &http.Client{Timeout: requestTimeout}
+
 	var req *http.Request
+
 	req, err = http.NewRequest(http.MethodGet, apiURL, nil)
 	if err != nil {
 		return nil, err
 	}
+
 	req.Header.Add("Authorization", "Bearer "+accessToken)
 	q := req.URL.Query()
 	q.Add("projection", "DRAFT")
@@ -130,14 +135,14 @@ func (s *Store) Status(c Client, appID string) (result *StatusResponse, err erro
 	return result, nil
 }
 
-// InsertResponse describes structure returned on the insert request
+// InsertResponse describes structure returned on the insert request.
 type InsertResponse struct {
 	Kind        string
 	ID          string
 	UploadState string
 }
 
-// Insert uploads a package to create a new store item
+// Insert uploads a package to create a new store item.
 func (s *Store) Insert(c Client, filePath string) (result *InsertResponse, err error) {
 	const apiPath = "upload/chromewebstore/v1.1/items"
 	apiURL := urlutil.JoinURL(s.URL, apiPath)
@@ -153,12 +158,14 @@ func (s *Store) Insert(c Client, filePath string) (result *InsertResponse, err e
 	}
 
 	client := &http.Client{Timeout: requestTimeout}
+
 	req, err := http.NewRequest(http.MethodPost, apiURL, body)
 	if err != nil {
 		return nil, err
 	}
 
 	req.Header.Add("Authorization", "Bearer "+accessToken)
+
 	res, err := client.Do(req)
 	if err != nil {
 		return nil, err
@@ -169,6 +176,7 @@ func (s *Store) Insert(c Client, filePath string) (result *InsertResponse, err e
 	if err != nil {
 		return nil, err
 	}
+
 	if res.StatusCode != http.StatusOK {
 		return nil, errors.New(string(responseBody))
 	}
@@ -181,14 +189,14 @@ func (s *Store) Insert(c Client, filePath string) (result *InsertResponse, err e
 	return result, nil
 }
 
-// UpdateResponse describes response returned on update request
+// UpdateResponse describes response returned on update request.
 type UpdateResponse struct {
 	Kind        string `json:"kind"`
 	ID          string `json:"id"`
 	UploadState string `json:"uploadState"`
 }
 
-// Update uploads new version of the package to the store
+// Update uploads new version of the package to the store.
 func (s *Store) Update(c Client, appID, filePath string) (result *UpdateResponse, err error) {
 	const apiPath = "upload/chromewebstore/v1.1/items/"
 	apiURL := urlutil.JoinURL(s.URL, apiPath, appID)
@@ -235,7 +243,7 @@ func (s *Store) Update(c Client, appID, filePath string) (result *UpdateResponse
 	return result, nil
 }
 
-// PublishResponse describes response returned on publish request
+// PublishResponse describes response returned on publish request.
 type PublishResponse struct {
 	Kind         string   `json:"kind"`
 	ItemID       string   `json:"item_id"`
@@ -243,7 +251,7 @@ type PublishResponse struct {
 	StatusDetail []string `json:"statusDetail"`
 }
 
-// Publish publishes app to the store
+// Publish publishes app to the store.
 func (s *Store) Publish(c Client, appID string) (result *PublishResponse, err error) {
 	const apiPath = "chromewebstore/v1.1/items"
 	apiURL := urlutil.JoinURL(s.URL, apiPath, appID, "publish")

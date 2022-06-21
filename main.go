@@ -7,6 +7,7 @@ import (
 
 	"github.com/joho/godotenv"
 	"github.com/maximtop/extdash/internal/chrome"
+	"github.com/maximtop/extdash/internal/edge"
 	"github.com/maximtop/extdash/internal/firefox"
 	"github.com/urfave/cli/v2"
 )
@@ -33,6 +34,20 @@ func main() {
 		ClientSecret: os.Getenv("FIREFOX_CLIENT_SECRET"),
 	})
 	firefoxStore, err := firefox.NewStore("https://addons.mozilla.org/")
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	edgeClient, err := edge.NewClient(
+		os.Getenv("EDGE_CLIENT_ID"),
+		os.Getenv("EDGE_CLIENT_SECRET"),
+		os.Getenv("EDGE_ACCESS_TOKEN_URL"),
+	)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	edgeStore, err := edge.NewStore("https://api.addons.microsoftedge.microsoft.com")
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -170,25 +185,71 @@ func main() {
 						return nil
 					},
 				},
+				{
+					Name:  "edge",
+					Usage: "updates version of extension in the edge store",
+					Flags: []cli.Flag{
+						fileFlag,
+						appFlag,
+					},
+					Action: func(c *cli.Context) error {
+						filepath := c.String("file")
+						appID := c.String("app")
+
+						result, err := edgeStore.Update(edgeClient, appID, filepath, edge.UpdateOptions{})
+						if err != nil {
+							return err
+						}
+
+						fmt.Println(result)
+
+						return nil
+					},
+				},
 			},
 		},
 		{
 			Name:  "publish",
 			Usage: "publishes extension in the chrome web store",
-			Flags: []cli.Flag{
-				&cli.StringFlag{Name: "app", Aliases: []string{"a"}, Required: true},
-			},
-			Action: func(c *cli.Context) error {
-				appID := c.String("app")
+			Subcommands: []*cli.Command{
+				{
+					Name:  "chrome",
+					Usage: "publishes extension in the chrome store",
+					Flags: []cli.Flag{
+						appFlag,
+					},
+					Action: func(c *cli.Context) error {
+						appID := c.String("app")
 
-				result, err := chromeStore.Publish(chromeClient, appID)
-				if err != nil {
-					return err
-				}
+						result, err := chromeStore.Publish(chromeClient, appID)
+						if err != nil {
+							return err
+						}
 
-				fmt.Println(result)
+						fmt.Println(result)
 
-				return nil
+						return nil
+					},
+				},
+				{
+					Name:  "edge",
+					Usage: "publishes extension in the edge store",
+					Flags: []cli.Flag{
+						appFlag,
+					},
+					Action: func(c *cli.Context) error {
+						appID := c.String("app")
+
+						result, err := edgeStore.Publish(edgeClient, appID)
+						if err != nil {
+							return err
+						}
+
+						fmt.Println(result)
+
+						return nil
+					},
+				},
 			},
 		},
 	}

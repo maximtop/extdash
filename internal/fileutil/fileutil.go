@@ -12,21 +12,23 @@ const (
 	MB
 )
 
-// readFile reads content of the archived file
+// readFile reads content of the archived file.
 func readFile(file *zip.File) (result []byte, err error) {
 	reader, err := file.Open()
 	if err != nil {
 		return nil, err
 	}
 	defer reader.Close()
+
 	content, err := io.ReadAll(reader)
 	if err != nil {
 		return nil, err
 	}
+
 	return content, err
 }
 
-// ReadFileFromZip reads zip archive and returns content of the file by filename
+// ReadFileFromZip reads zip archive and returns content of the file by filename.
 func ReadFileFromZip(zipFile, filename string) (result []byte, err error) {
 	reader, err := zip.OpenReader(zipFile)
 	if err != nil {
@@ -40,6 +42,7 @@ func ReadFileFromZip(zipFile, filename string) (result []byte, err error) {
 			if err != nil {
 				return nil, err
 			}
+
 			return result, nil
 		}
 	}

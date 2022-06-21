@@ -10,6 +10,7 @@ import (
 	"net/http"
 	"net/url"
 	"os"
+	"path/filepath"
 	"strconv"
 	"time"
 
@@ -21,6 +22,8 @@ import (
 // AMO main url is https://addons.mozilla.org/
 // Please use our AMO dev environment at https://addons-dev.allizom.org/ or the AMO stage
 // environment at https://addons.allizom.org/ for testing.
+// credential keys can't be sent via email, so you need to ask them in the chat https://matrix.to/#/#amo:mozilla.org
+// last time I've asked them from mat https://matrix.to/#/@mat:mozilla.org
 
 // TODO(maximtop): add method for signing standalone extension
 
@@ -317,11 +320,30 @@ type UploadStatus struct {
 	PassedReview     bool                `json:"passed_review"`
 	Pk               string              `json:"pk"`
 	Processed        bool                `json:"processed"`
-	Reviewed         bool                `json:"reviewed"`
+	Reviewed         ReviewedStatus      `json:"reviewed"`
 	URL              string              `json:"url"`
 	Valid            bool                `json:"valid"`
 	ValidationURL    string              `json:"validation_url"`
 	Version          string              `json:"version"`
+}
+
+type ReviewedStatus bool
+
+func (w *ReviewedStatus) UnmarshalJSON(b []byte) error {
+	stringVal := string(b)
+
+	boolVal, err := strconv.ParseBool(stringVal)
+	if err == nil {
+		*w = ReviewedStatus(boolVal)
+		return nil
+	}
+	if len(stringVal) > 0 {
+		*w = true
+	} else {
+		*w = false
+	}
+
+	return nil
 }
 
 // UploadStatus retrieves upload status of the extension.
@@ -376,7 +398,7 @@ func (s *Store) UploadStatus(c Client, appID, version string) (status *UploadSta
 
 // AwaitValidation awaits validation of the extension.
 func (s *Store) AwaitValidation(c Client, appID, version string) (err error) {
-	// TODO(maximtop): !!move constants to config
+	// TODO(maximtop): move constants to config
 	const retryInterval = time.Second
 	const maxAwaitTime = time.Minute * 20
 
@@ -608,6 +630,138 @@ func (s *Store) Update(c Client, filepath, sourcepath string) (err error) {
 	}
 
 	_, err = s.UploadSource(c, appID, versionID, sourcepath)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+// AwaitSigning waits for the extension to be signed.
+func (s *Store) AwaitSigning(c Client, appID, version string) (err error) {
+	log.Printf("[DEBUG] Start waiting for signing of extension: %s", appID)
+
+	// TODO(maximtop): move constants to config
+	const retryInterval = time.Second
+	const maxAwaitTime = time.Minute * 20
+
+	var startTime = time.Now()
+
+	for {
+		if (time.Now().Sub(startTime)) > maxAwaitTime {
+			return fmt.Errorf("await signing timeout")
+		}
+
+		uploadStatus, err := s.UploadStatus(c, appID, version)
+		if err != nil {
+			return err
+		}
+
+		var signedAndReady = uploadStatus.Valid && uploadStatus.Active && bool(uploadStatus.Reviewed) && len(uploadStatus.Files) > 0
+		var requiresManualReview = uploadStatus.Valid && !uploadStatus.AutomatedSigning
+
+		if signedAndReady || requiresManualReview {
+			if requiresManualReview {
+				return fmt.Errorf("extension won't be signed automatically, status: %+v", uploadStatus)
+			}
+			if signedAndReady {
+				log.Printf("[DEBUG] Extension is signed and ready: %s", appID)
+				return nil
+			}
+		} else {
+			time.Sleep(retryInterval)
+		}
+	}
+
+	return nil
+}
+
+// DownloadSigned downloads signed extension.
+func (s *Store) DownloadSigned(c Client, appID, version string) (err error) {
+	log.Printf("[DEBUG] Start downloading signed extension: %s", appID)
+
+	uploadStatus, err := s.UploadStatus(c, appID, version)
+	if err != nil {
+		return err
+	}
+
+	if len(uploadStatus.Files) == 0 {
+		return fmt.Errorf("no files to download")
+	}
+
+	var downloadURL = uploadStatus.Files[0].DownloadURL
+
+	client := http.Client{Timeout: requestTimeout}
+
+	req, err := http.NewRequest(http.MethodGet, downloadURL, nil)
+	if err != nil {
+		return err
+	}
+
+	authHeader, err := c.GenAuthHeader()
+	if err != nil {
+		return err
+	}
+
+	req.Header.Add("Authorization", authHeader)
+
+	res, err := client.Do(req)
+	if err != nil {
+		return err
+	}
+	defer res.Body.Close()
+
+	responseBody, err := io.ReadAll(io.LimitReader(res.Body, maxReadLimit))
+	if err != nil {
+		return err
+	}
+
+	parsedURL, err := url.Parse(downloadURL)
+	if err != nil {
+		return err
+	}
+
+	var filename = filepath.Base(parsedURL.Path)
+
+	// save response to file
+	file, err := os.Create(filename)
+	if err != nil {
+		return err
+	}
+
+	_, err = io.Copy(file, bytes.NewReader(responseBody))
+	if err != nil {
+		return err
+	}
+	defer file.Close()
+
+	return nil
+}
+
+// Sign uploads the extension to the store, waits for signing, downloads and saves the signed
+// extension in the directory
+func (s *Store) Sign(c Client, filepath string) (err error) {
+	log.Printf("[DEBUG] Start signing extension: %s", filepath)
+
+	manifest, err := parseManifest(filepath)
+	if err != nil {
+		return err
+	}
+
+	appID := manifest.Applications.Gecko.ID
+	version := manifest.Version
+
+	_, err = s.UploadUpdate(c, appID, version, filepath)
+	if err != nil {
+		return err
+	}
+
+	err = s.AwaitSigning(c, appID, version)
+	if err != nil {
+		return err
+	}
+
+	err = s.DownloadSigned(c, appID, version)
 	if err != nil {
 		return err
 	}

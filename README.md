@@ -4,7 +4,7 @@
 - [ ] create api to deploy to the stores
   - [x] chrome
   - [x] mozilla
-  - [ ] edge
+  - [x] edge
   - [ ] opera
   - [ ] static
 - [ ] get publish status for extensions from storage (published, draft, on review)

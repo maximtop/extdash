@@ -48,7 +48,7 @@ func TestStatus(t *testing.T) {
 	assert.Equal(status, string(actualStatus))
 }
 
-func TestInsert(t *testing.T) {
+func TestUploadNew(t *testing.T) {
 	assert := assert.New(t)
 
 	status := "test_status"
@@ -77,6 +77,7 @@ func TestInsert(t *testing.T) {
 
 		assert.Contains(string(body), "test content")
 
+		w.WriteHeader(http.StatusCreated)
 		_, err = w.Write([]byte(status))
 		require.NoError(t, err)
 	}))
@@ -85,17 +86,19 @@ func TestInsert(t *testing.T) {
 	store, err := firefox.NewStore(storeServer.URL)
 	require.NoError(t, err)
 
-	resultStatus, err := store.Insert(client, "testdata/test.txt")
+	result, err := store.UploadNew(client, "testdata/test.txt")
 	require.NoError(t, err)
 
-	assert.Equal(status, string(resultStatus))
+	assert.Equal(status, string(result))
 }
 
-func TestUpdate(t *testing.T) {
+func TestUploadUpdate(t *testing.T) {
 	assert := assert.New(t)
 	response := "test_response"
 	clientID := "test_client_id"
 	clientSecret := "test_client_secret"
+	appID := "test_app_id"
+	version := "0.0.3"
 	currentTimeSec := time.Now().Unix()
 	now := func() int64 {
 		return currentTimeSec
@@ -105,7 +108,7 @@ func TestUpdate(t *testing.T) {
 
 	storeServer := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		assert.Equal(http.MethodPut, r.Method)
-		assert.Contains(r.URL.Path, "api/v5/addons/sample-for-dashboard8@adguard.com/versions/0.0.3")
+		assert.Contains(r.URL.Path, "api/v5/addons/"+appID+"/versions/"+version)
 		authHeader, err := client.GenAuthHeader()
 		require.NoError(t, err)
 
@@ -116,6 +119,7 @@ func TestUpdate(t *testing.T) {
 		defer file.Close()
 		assert.Equal(header.Filename, "extension.zip")
 
+		w.WriteHeader(http.StatusCreated)
 		_, err = w.Write([]byte(response))
 		require.NoError(t, err)
 	}))
@@ -124,8 +128,50 @@ func TestUpdate(t *testing.T) {
 	store, err := firefox.NewStore(storeServer.URL)
 	require.NoError(t, err)
 
-	actualResponse, err := store.Update(client, "testdata/extension.zip")
+	actualResponse, err := store.UploadUpdate(client, appID, version, "testdata/extension.zip")
 	require.NoError(t, err)
 
 	assert.Equal(response, string(actualResponse))
+}
+
+func TestUploadSource(t *testing.T) {
+	assert := assert.New(t)
+
+	appID := "test_app_id"
+	response := "test_response"
+	clientID := "test_client_id"
+	clientSecret := "test_client_secret"
+	testFile := "testdata/source.zip"
+	versionID := "test_version_id"
+
+	client := firefox.NewClient(firefox.ClientConfig{
+		ClientID:     clientID,
+		ClientSecret: clientSecret,
+		Now: func() int64 {
+			return 1
+		},
+	})
+
+	storeServer := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		assert.Equal(http.MethodPatch, r.Method)
+		assert.Contains(r.URL.Path, "/api/v5/addons/addon/"+appID+"/versions/"+versionID+"/")
+		assert.Contains(r.Header.Get("Content-Type"), "multipart/form-data")
+
+		file, header, err := r.FormFile("source")
+
+		require.NoError(t, err)
+		defer file.Close()
+
+		assert.Equal(header.Filename, "source.zip")
+		_, err = w.Write([]byte(response))
+		require.NoError(t, err)
+	}))
+
+	store, err := firefox.NewStore(storeServer.URL)
+	require.NoError(t, err)
+
+	uploadResponse, err := store.UploadSource(client, appID, versionID, testFile)
+	require.NoError(t, err)
+
+	assert.Equal(response, string(uploadResponse))
 }

@@ -17,5 +17,5 @@ test:
 	go test ./...
 
 zip:
-	cd tmp/extension; zip -r ../extension.zip ./
+	cd tmp/extension && zip -r ../extension.zip ./
 

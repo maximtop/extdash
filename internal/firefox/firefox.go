@@ -5,17 +5,22 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
+	"log"
 	"mime/multipart"
 	"net/http"
 	"net/url"
 	"os"
-	"path"
+	"strconv"
 	"time"
 
 	"github.com/golang-jwt/jwt/v4"
 	"github.com/maximtop/extdash/internal/fileutil"
 	"github.com/maximtop/extdash/internal/urlutil"
 )
+
+// AMO main url is https://addons.mozilla.org/
+// Please use our AMO dev environment at https://addons-dev.allizom.org/ or the AMO stage
+// environment at https://addons.allizom.org/ for testing.
 
 // TODO(maximtop): add method for signing standalone extension
 
@@ -154,15 +159,260 @@ func (s *Store) Status(c Client, appID string) (result []byte, err error) {
 	return body, nil
 }
 
-// Insert uploads extension to the amo
+type Version struct {
+	ID      int    `json:"id"`
+	Version string `json:"version"`
+}
+
+type VersionResponse struct {
+	PageSize  int         `json:"page_size"`
+	PageCount int         `json:"page_count"`
+	Count     int         `json:"count"`
+	Next      interface{} `json:"next"`
+	Previous  interface{} `json:"previous"`
+	Results   []Version   `json:"results"`
+}
+
+// VersionID retrieves version ID by version number.
+func (s *Store) VersionID(c Client, appID, version string) (result string, err error) {
+	log.Printf("[DEBUG] Getting version ID for appID: %s, version: %s", appID, version)
+
+	const apiPath = "api/v5/addons/addon/"
+	apiURL := urlutil.JoinURL(s.URL, apiPath, appID, "versions") + "/?filter=all_with_unlisted"
+
+	req, err := http.NewRequest(http.MethodGet, apiURL, nil)
+	if err != nil {
+		return "", err
+	}
+
+	authHeader, err := c.GenAuthHeader()
+	if err != nil {
+		return "", err
+	}
+
+	req.Header.Add("Authorization", authHeader)
+
+	client := &http.Client{Timeout: requestTimeout}
+	res, err := client.Do(req)
+	if err != nil {
+		return "", err
+	}
+	defer res.Body.Close()
+
+	body, err := io.ReadAll(io.LimitReader(res.Body, maxReadLimit))
+	if err != nil {
+		return "", err
+	}
+
+	if res.StatusCode != http.StatusOK {
+		return "", fmt.Errorf("got code %d, body: %q", res.StatusCode, body)
+	}
+
+	var versions VersionResponse
+
+	err = json.Unmarshal(body, &versions)
+	if err != nil {
+		return "", err
+	}
+
+	var versionID string
+
+	for _, resultVersion := range versions.Results {
+		if resultVersion.Version == version {
+			versionID = strconv.Itoa(resultVersion.ID)
+			break
+		}
+	}
+
+	if versionID == "" {
+		return "", fmt.Errorf("version %s not found", version)
+	}
+
+	log.Printf("[DEBUG] Version ID: %s", versionID)
+
+	return versionID, nil
+}
+
+// UploadSource uploads source code of the extension to the store.
+// Source can be uploaded only after the extension is validated.
+func (s *Store) UploadSource(c Client, appID, versionID, sourcePath string) (result []byte, err error) {
+	log.Printf("[DEBUG] Uploading source for appID: %s, versionID: %s", appID, versionID)
+
+	const apiPath = "api/v5/addons/addon/"
+
+	apiURL := urlutil.JoinURL(s.URL, apiPath, appID, "versions", versionID) + "/"
+
+	file, err := os.Open(sourcePath)
+	if err != nil {
+		return nil, err
+	}
+	defer file.Close()
+
+	body := &bytes.Buffer{}
+	writer := multipart.NewWriter(body)
+
+	part, err := writer.CreateFormFile("source", file.Name())
+	if err != nil {
+		return nil, err
+	}
+
+	_, err = io.Copy(part, file)
+	if err != nil {
+		return nil, err
+	}
+
+	err = writer.Close()
+	if err != nil {
+		return nil, err
+	}
+
+	req, err := http.NewRequest(http.MethodPatch, apiURL, body)
+	if err != nil {
+		return nil, err
+	}
+
+	req.Header.Set("Content-Type", writer.FormDataContentType())
+
+	authHeader, err := c.GenAuthHeader()
+	if err != nil {
+		return nil, err
+	}
+
+	req.Header.Add("Authorization", authHeader)
+
+	client := &http.Client{Timeout: requestTimeout}
+	res, err := client.Do(req)
+
+	if err != nil {
+		return nil, err
+	}
+
+	defer res.Body.Close()
+
+	responseBody, err := io.ReadAll(io.LimitReader(res.Body, maxReadLimit))
+	if err != nil {
+		return nil, err
+	}
+
+	if res.StatusCode != http.StatusOK {
+		return nil, fmt.Errorf("got code %d, body: %q", res.StatusCode, body)
+	}
+
+	log.Println("[DEBUG] Successfully uploaded source")
+
+	return responseBody, nil
+}
+
+type UploadStatusFiles struct {
+	DownloadURL string `json:"download_url"`
+	Hash        string `json:"hash"`
+	Signed      bool   `json:"signed"`
+}
+
+type UploadStatus struct {
+	GUID             string              `json:"guid"`
+	Active           bool                `json:"active"`
+	AutomatedSigning bool                `json:"automated_signing"`
+	Files            []UploadStatusFiles `json:"files"`
+	PassedReview     bool                `json:"passed_review"`
+	Pk               string              `json:"pk"`
+	Processed        bool                `json:"processed"`
+	Reviewed         bool                `json:"reviewed"`
+	URL              string              `json:"url"`
+	Valid            bool                `json:"valid"`
+	ValidationURL    string              `json:"validation_url"`
+	Version          string              `json:"version"`
+}
+
+// UploadStatus retrieves upload status of the extension.
+// curl "https://addons.mozilla.org/api/v5/addons/@my-addon/versions/1.0/"
+//    -g -H "Authorization: JWT <jwt-token>"
+func (s *Store) UploadStatus(c Client, appID, version string) (status *UploadStatus, err error) {
+	log.Printf("[DEBUG] Getting upload status for appID: %s, version: %s", appID, version)
+
+	const apiPath = "api/v5/addons"
+	apiURL := urlutil.JoinURL(s.URL, apiPath, appID, "versions", version)
+
+	req, err := http.NewRequest(http.MethodGet, apiURL, nil)
+	if err != nil {
+		return nil, err
+	}
+
+	authHeader, err := c.GenAuthHeader()
+	if err != nil {
+		return nil, err
+	}
+
+	req.Header.Add("Authorization", authHeader)
+
+	client := &http.Client{Timeout: requestTimeout}
+
+	res, err := client.Do(req)
+	if err != nil {
+		return nil, err
+	}
+	defer res.Body.Close()
+
+	body, err := io.ReadAll(io.LimitReader(res.Body, maxReadLimit))
+	if err != nil {
+		return nil, err
+	}
+
+	if res.StatusCode != http.StatusOK {
+		return nil, fmt.Errorf("got code %d, body: %q", res.StatusCode, body)
+	}
+
+	var uploadStatus UploadStatus
+
+	err = json.Unmarshal(body, &uploadStatus)
+	if err != nil {
+		return nil, err
+	}
+
+	log.Printf("[DEBUG] Received upload status: %+v", uploadStatus)
+
+	return &uploadStatus, nil
+}
+
+// AwaitValidation awaits validation of the extension.
+func (s *Store) AwaitValidation(c Client, appID, version string) (err error) {
+	// TODO(maximtop): !!move constants to config
+	const retryInterval = time.Second
+	const maxAwaitTime = time.Minute * 20
+
+	var startTime = time.Now()
+
+	for {
+		if (time.Now().Sub(startTime)) > maxAwaitTime {
+			return fmt.Errorf("await validation timeout")
+		}
+
+		uploadStatus, err := s.UploadStatus(c, appID, version)
+		if err != nil {
+			return err
+		}
+		if uploadStatus.Processed {
+			log.Println("[DEBUG] Extension upload processed successfully")
+			break
+		} else {
+			time.Sleep(retryInterval)
+		}
+	}
+
+	return nil
+}
+
+// UploadNew uploads the extension to the store for the first time
 // https://addons-server.readthedocs.io/en/latest/topics/api/signing.html?highlight=%2Faddons%2F#post--api-v5-addons-
 // CURL example:
 // curl -v -XPOST \
 //  -H "Authorization: JWT ${ACCESS_TOKEN}" \
 //  -F "upload=@tmp/extension.zip" \
 //  "https://addons.mozilla.org/api/v5/addons/"
-func (s *Store) Insert(c Client, filepath string) (result []byte, err error) {
-	const apiPath = "/api/v5/addons/"
+func (s *Store) UploadNew(c Client, filepath string) (result []byte, err error) {
+	log.Printf("[DEBUG] Uploading new extension: %s", filepath)
+
+	const apiPath = "api/v5/addons"
 
 	// trailing slash is required for this request
 	// in go 1.19 would be possible u.JoinPath("users", "/")
@@ -177,7 +427,7 @@ func (s *Store) Insert(c Client, filepath string) (result []byte, err error) {
 	body := &bytes.Buffer{}
 	writer := multipart.NewWriter(body)
 
-	part, err := writer.CreateFormFile("upload", path.Base(file.Name()))
+	part, err := writer.CreateFormFile("upload", file.Name())
 	if err != nil {
 		return nil, err
 	}
@@ -218,18 +468,55 @@ func (s *Store) Insert(c Client, filepath string) (result []byte, err error) {
 		return nil, err
 	}
 
+	if res.StatusCode != http.StatusCreated && res.StatusCode != http.StatusAccepted {
+		return nil, fmt.Errorf("got code %d, body: %q", res.StatusCode, respBody)
+	}
+
+	log.Printf("[DEBUG] Uploaded new extension: %s, response: %s", filepath, respBody)
+
 	return respBody, nil
 }
 
-// Update uploads new version of extension to the store
-// Before uploading it reads manifest.json for getting extension version and uuid.
-func (s *Store) Update(c Client, filepath string) (result []byte, err error) {
-	const apiPath = "api/v5/addons"
+// Insert uploads extension to the amo for the first time.
+func (s *Store) Insert(c Client, filepath, sourcepath string) (err error) {
+	log.Printf("[DEBUG] Start uploading new extension: %s, with source: %s", filepath, sourcepath)
+
+	_, err = s.UploadNew(c, filepath)
+	if err != nil {
+		return err
+	}
 
 	manifest, err := parseManifest(filepath)
 	if err != nil {
-		return nil, err
+		return err
 	}
+
+	appID := manifest.Applications.Gecko.ID
+	version := manifest.Version
+
+	err = s.AwaitValidation(c, appID, version)
+	if err != nil {
+		return err
+	}
+
+	versionID, err := s.VersionID(c, appID, version)
+	if err != nil {
+		return err
+	}
+
+	_, err = s.UploadSource(c, appID, versionID, sourcepath)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+// UploadUpdate uploads the extension update.
+func (s *Store) UploadUpdate(c Client, appID, version, filepath string) (result []byte, err error) {
+	log.Printf("[DEBUG] Start uploading update for extension: %s", filepath)
+
+	const apiPath = "api/v5/addons"
 
 	file, err := os.Open(filepath)
 	if err != nil {
@@ -237,12 +524,12 @@ func (s *Store) Update(c Client, filepath string) (result []byte, err error) {
 	}
 	defer file.Close()
 
-	apiURL := urlutil.JoinURL(s.URL, apiPath, manifest.Applications.Gecko.ID, "versions", manifest.Version) + "/"
+	apiURL := urlutil.JoinURL(s.URL, apiPath, appID, "versions", version) + "/"
 
 	body := &bytes.Buffer{}
 	writer := multipart.NewWriter(body)
 
-	part, err := writer.CreateFormFile("upload", path.Base(file.Name()))
+	part, err := writer.CreateFormFile("upload", file.Name())
 	if err != nil {
 		return nil, err
 	}
@@ -283,5 +570,47 @@ func (s *Store) Update(c Client, filepath string) (result []byte, err error) {
 		return nil, err
 	}
 
+	if res.StatusCode != http.StatusCreated && res.StatusCode != http.StatusAccepted {
+		return nil, fmt.Errorf("got code %d, body: %q", res.StatusCode, responseBody)
+	}
+
+	log.Printf("[DEBUG] Successfully uploaded update for extension: %s, response: %s", filepath, responseBody)
+
 	return responseBody, nil
+}
+
+// Update uploads new version of extension to the store
+// Before uploading it reads manifest.json for getting extension version and uuid.
+func (s *Store) Update(c Client, filepath, sourcepath string) (err error) {
+	log.Printf("[DEBUG] Start uploading update for extension: %s, with source: %s", filepath, sourcepath)
+
+	manifest, err := parseManifest(filepath)
+	if err != nil {
+		return err
+	}
+
+	appID := manifest.Applications.Gecko.ID
+	version := manifest.Version
+
+	_, err = s.UploadUpdate(c, appID, version, filepath)
+	if err != nil {
+		return err
+	}
+
+	err = s.AwaitValidation(c, appID, version)
+	if err != nil {
+		return err
+	}
+
+	versionID, err := s.VersionID(c, appID, version)
+	if err != nil {
+		return err
+	}
+
+	_, err = s.UploadSource(c, appID, versionID, sourcepath)
+	if err != nil {
+		return err
+	}
+
+	return nil
 }

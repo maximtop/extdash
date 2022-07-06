@@ -27,7 +27,7 @@ type Client struct {
 func NewClient(clientID, clientSecret, rawAccessTokenURL string) (client Client, err error) {
 	accessTokenURL, err := url.Parse(rawAccessTokenURL)
 	if err != nil {
-		return Client{}, err
+		return Client{}, fmt.Errorf("failed to parse access token URL: %w", err)
 	}
 
 	return Client{
@@ -54,7 +54,7 @@ func (c *Client) Authorize() (accessToken string, err error) {
 
 	req, err := http.NewRequest(http.MethodPost, c.AccessTokenURL.String(), strings.NewReader(form.Encode()))
 	if err != nil {
-		return "", err
+		return "", fmt.Errorf("[Authorize] failed to create request: %w", err)
 	}
 
 	req.Header.Add("Content-Type", "application/x-www-form-urlencoded")
@@ -63,19 +63,19 @@ func (c *Client) Authorize() (accessToken string, err error) {
 
 	response, err := client.Do(req)
 	if err != nil {
-		return "", err
+		return "", fmt.Errorf("[Authorize] failed to send request: %w", err)
 	}
 
 	responseBody, err := io.ReadAll(response.Body)
 	if err != nil {
-		return "", err
+		return "", fmt.Errorf("[Authorize] failed to read response: %w", err)
 	}
 
 	var authorizeResponse AuthorizeResponse
 
 	err = json.Unmarshal(responseBody, &authorizeResponse)
 	if err != nil {
-		return "", err
+		return "", fmt.Errorf("[Authorize] failed to unmarshal response: %s, due to error %w", responseBody, err)
 	}
 
 	return authorizeResponse.AccessToken, nil
@@ -90,7 +90,7 @@ type Store struct {
 func NewStore(rawURL string) (store Store, err error) {
 	URL, err := url.Parse(rawURL)
 	if err != nil {
-		return Store{}, nil
+		return Store{}, fmt.Errorf("[NewStore] failed to parse URL: %s due to error: %w", rawURL, err)
 	}
 
 	return Store{
@@ -155,7 +155,9 @@ func (s Store) Update(c Client, appID, filepath string, updateOptions UpdateOpti
 
 	operationID, err := s.UploadUpdate(c, appID, filepath)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf(
+			"[Update] failed to upload update for appID: %s, with filepath: %s, due to error: %w", appID, filepath, err,
+		)
 	}
 
 	startTime := time.Now()
@@ -169,7 +171,9 @@ func (s Store) Update(c Client, appID, filepath string, updateOptions UpdateOpti
 
 		status, err := s.UploadStatus(c, appID, operationID)
 		if err != nil {
-			return nil, err
+			return nil, fmt.Errorf(
+				"[Update] failed to get upload status for appID: %s, with operationID: %s, due to error: %w", appID, operationID, err,
+			)
 		}
 
 		if status.Status == InProgress.String() {
@@ -196,18 +200,18 @@ func (s Store) UploadUpdate(c Client, appID, filepath string) (result string, er
 
 	file, err := os.Open(filepath)
 	if err != nil {
-		return "", err
+		return "", fmt.Errorf("[UploadUpdate] failed to open file: %s due to error: %w", filepath, err)
 	}
 	defer file.Close()
 
 	req, err := http.NewRequest(http.MethodPost, apiURL, file)
 	if err != nil {
-		return "", err
+		return "", fmt.Errorf("[UploadUpdate] failed to create request: %w", err)
 	}
 
 	accessToken, err := c.Authorize()
 	if err != nil {
-		return "", err
+		return "", fmt.Errorf("[UploadUpdate] failed to get access token: %w", err)
 	}
 
 	req.Header.Add("Authorization", "Bearer "+accessToken)
@@ -217,17 +221,17 @@ func (s Store) UploadUpdate(c Client, appID, filepath string) (result string, er
 
 	res, err := client.Do(req)
 	if err != nil {
-		return "", err
+		return "", fmt.Errorf("[UploadUpdate] failed to send request: %w", err)
 	}
 
 	if res.StatusCode != http.StatusAccepted {
-		return "", fmt.Errorf("received wrong response %s", res.Status)
+		return "", fmt.Errorf("[UploadUpdate] received wrong response %s", res.Status)
 	}
 
 	operationID := res.Header.Get("Location")
 
 	if operationID == "" {
-		return "", fmt.Errorf("received empty operation ID")
+		return "", fmt.Errorf("[UploadUpdate] received empty operation ID")
 	}
 
 	return operationID, nil
@@ -240,12 +244,12 @@ func (s Store) UploadStatus(c Client, appID, operationID string) (response *Uplo
 
 	req, err := http.NewRequest(http.MethodGet, apiURL, nil)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("[UploadStatus] failed to create request: %w", err)
 	}
 
 	accessToken, err := c.Authorize()
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("[UploadStatus] failed to get access token: %w", err)
 	}
 
 	req.Header.Set("Authorization", "Bearer "+accessToken)
@@ -256,18 +260,17 @@ func (s Store) UploadStatus(c Client, appID, operationID string) (response *Uplo
 
 	res, err := client.Do(req)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("[UploadStatus] failed to send request: %w", err)
 	}
 
 	responseBody, err := io.ReadAll(res.Body)
-	log.Println(string(responseBody))
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("[UploadStatus] failed to read response body: %w", err)
 	}
 
 	err = json.Unmarshal(responseBody, &response)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("[UploadStatus] failed to unmarshal response body: %s, due to error %w", responseBody, err)
 	}
 
 	return response, nil
@@ -281,12 +284,12 @@ func (s Store) PublishExtension(c Client, appID string) (result string, err erro
 	// TODO (maximtop): consider adding body to the request with notes for reviewers.
 	req, err := http.NewRequest(http.MethodPost, apiURL, nil)
 	if err != nil {
-		return "", err
+		return "", fmt.Errorf("[PublishExtension] failed to create request: %w", err)
 	}
 
 	accessToken, err := c.Authorize()
 	if err != nil {
-		return "", err
+		return "", fmt.Errorf("[PublishExtension] failed to get access token: %w", err)
 	}
 
 	req.Header.Set("Authorization", "Bearer "+accessToken)
@@ -295,7 +298,7 @@ func (s Store) PublishExtension(c Client, appID string) (result string, err erro
 
 	res, err := client.Do(req)
 	if err != nil {
-		return "", err
+		return "", fmt.Errorf("[PublishExtension] failed to send request: %w", err)
 	}
 
 	if res.StatusCode != http.StatusAccepted {
@@ -328,12 +331,12 @@ func (s Store) PublishStatus(c Client, appID, operationID string) (response *Pub
 
 	accessToken, err := c.Authorize()
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("[PublishStatus] failed to get access token: %w", err)
 	}
 
 	req, err := http.NewRequest(http.MethodGet, apiURL, nil)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("[PublishStatus] failed to create request: %w", err)
 	}
 
 	req.Header.Set("Authorization", "Bearer "+accessToken)
@@ -342,22 +345,22 @@ func (s Store) PublishStatus(c Client, appID, operationID string) (response *Pub
 
 	res, err := client.Do(req)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("[PublishStatus] failed to send request: %w", err)
 	}
 
 	if res.StatusCode != http.StatusOK {
-		return nil, fmt.Errorf("received wrong response %s", res.Status)
+		return nil, fmt.Errorf("[PublishStatus] received wrong response %s", res.Status)
 	}
 
 	responseBody, err := io.ReadAll(res.Body)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("[PublishStatus] failed to read response body: %w", err)
 	}
 
 	response = &PublishStatusResponse{}
 	err = json.Unmarshal(responseBody, response)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("[PublishStatus] failed to unmarshal response body: %s, due to error %w", responseBody, err)
 	}
 
 	if response.Status == Failed.String() {
@@ -371,7 +374,7 @@ func (s Store) PublishStatus(c Client, appID, operationID string) (response *Pub
 func (s Store) Publish(c Client, appID string) (response *PublishStatusResponse, err error) {
 	operationID, err := s.PublishExtension(c, appID)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("[Publish] failed to publish extension with appID: %s, due to error: %w", appID, err)
 	}
 
 	return s.PublishStatus(c, appID, operationID)

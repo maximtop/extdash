@@ -2,7 +2,7 @@ package fileutil
 
 import (
 	"archive/zip"
-	"errors"
+	"fmt"
 	"io"
 )
 
@@ -16,13 +16,13 @@ const (
 func readFile(file *zip.File) (result []byte, err error) {
 	reader, err := file.Open()
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("[readFile] error occurred on opening file: %w", err)
 	}
 	defer reader.Close()
 
 	content, err := io.ReadAll(reader)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("[readFile] error occurred on reading file: %w", err)
 	}
 
 	return content, err
@@ -32,7 +32,7 @@ func readFile(file *zip.File) (result []byte, err error) {
 func ReadFileFromZip(zipFile, filename string) (result []byte, err error) {
 	reader, err := zip.OpenReader(zipFile)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("[ReadFileFromZip] error occurred on opening zip file: %w", err)
 	}
 	defer reader.Close()
 
@@ -40,12 +40,12 @@ func ReadFileFromZip(zipFile, filename string) (result []byte, err error) {
 		if file.Name == filename {
 			result, err := readFile(file)
 			if err != nil {
-				return nil, err
+				return nil, fmt.Errorf("[ReadFileFromZip] error occurred on reading file: %w", err)
 			}
 
 			return result, nil
 		}
 	}
 
-	return result, errors.New("was unable to find file in zip")
+	return result, fmt.Errorf("was unable to find file: %s in zip", filename)
 }

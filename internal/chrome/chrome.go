@@ -41,20 +41,20 @@ func (c *Client) Authorize() (accessToken string, err error) {
 
 	res, err := http.PostForm(c.URL, data)
 	if err != nil {
-		return "", err
+		return "", fmt.Errorf("error occurred on http.PostForm: %w", err)
 	}
 	defer res.Body.Close()
 
 	body, err := io.ReadAll(io.LimitReader(res.Body, maxReadLimit))
 	if err != nil {
-		return "", fmt.Errorf("[Authorize] %w", err)
+		return "", fmt.Errorf("error occurred on reading response body: %w", err)
 	}
 
 	var result = &AuthorizeResponse{}
 
 	err = json.Unmarshal(body, result)
 	if err != nil {
-		return "", err
+		return "", fmt.Errorf("error occurred on unmarshaling response body: %w", err)
 	}
 
 	if res.StatusCode != http.StatusOK {
@@ -97,7 +97,7 @@ func (s *Store) Status(c Client, appID string) (result *StatusResponse, err erro
 
 	accessToken, err := c.Authorize()
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("error occurred on getting access token: %w", err)
 	}
 
 	client := &http.Client{Timeout: requestTimeout}
@@ -106,7 +106,7 @@ func (s *Store) Status(c Client, appID string) (result *StatusResponse, err erro
 
 	req, err = http.NewRequest(http.MethodGet, apiURL, nil)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("error occurred on creating request: %w", err)
 	}
 
 	req.Header.Add("Authorization", "Bearer "+accessToken)
@@ -116,7 +116,7 @@ func (s *Store) Status(c Client, appID string) (result *StatusResponse, err erro
 
 	res, err := client.Do(req)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("error occurred on sending request: %w", err)
 	}
 	defer res.Body.Close()
 
@@ -127,9 +127,8 @@ func (s *Store) Status(c Client, appID string) (result *StatusResponse, err erro
 	}
 
 	err = json.Unmarshal(body, &result)
-
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("error occurred on unmarshaling response body: %w", err)
 	}
 
 	return result, nil
@@ -149,32 +148,32 @@ func (s *Store) Insert(c Client, filePath string) (result *InsertResponse, err e
 
 	accessToken, err := c.Authorize()
 	if err != nil {
-		return
+		return nil, fmt.Errorf("error occurred on getting access token: %w", err)
 	}
 
 	body, err := os.Open(filePath)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("error occurred on opening file: %w", err)
 	}
 
 	client := &http.Client{Timeout: requestTimeout}
 
 	req, err := http.NewRequest(http.MethodPost, apiURL, body)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("error occurred on creating request: %w", err)
 	}
 
 	req.Header.Add("Authorization", "Bearer "+accessToken)
 
 	res, err := client.Do(req)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("error occurred on sending request: %w", err)
 	}
 	defer res.Body.Close()
 
 	responseBody, err := io.ReadAll(io.LimitReader(res.Body, maxReadLimit))
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("error occurred on reading response body: %w", err)
 	}
 
 	if res.StatusCode != http.StatusOK {
@@ -183,7 +182,7 @@ func (s *Store) Insert(c Client, filePath string) (result *InsertResponse, err e
 
 	err = json.Unmarshal(responseBody, &result)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("error occurred on unmarshaling response body: %w", err)
 	}
 
 	return result, nil
@@ -203,32 +202,32 @@ func (s *Store) Update(c Client, appID, filePath string) (result *UpdateResponse
 
 	accessToken, err := c.Authorize()
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("error occurred on getting access token: %w", err)
 	}
 
 	client := &http.Client{Timeout: requestTimeout}
 
 	body, err := os.Open(filePath)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("error occurred on opening file: %w", err)
 	}
 
 	req, err := http.NewRequest(http.MethodPut, apiURL, body)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("error occurred on creating request: %w", err)
 	}
 
 	req.Header.Add("Authorization", "Bearer "+accessToken)
 
 	res, err := client.Do(req)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("error occurred on sending request: %w", err)
 	}
 	defer res.Body.Close()
 
 	responseBody, err := io.ReadAll(io.LimitReader(res.Body, maxReadLimit))
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("error occurred on reading response body: %w", err)
 	}
 
 	if res.StatusCode != http.StatusOK {
@@ -237,7 +236,7 @@ func (s *Store) Update(c Client, appID, filePath string) (result *UpdateResponse
 
 	err = json.Unmarshal(responseBody, &result)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("error occurred on unmarshaling response body: %w", err)
 	}
 
 	return result, nil
@@ -258,21 +257,21 @@ func (s *Store) Publish(c Client, appID string) (result *PublishResponse, err er
 
 	accessToken, err := c.Authorize()
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("error occurred on getting access token: %w", err)
 	}
 
 	client := &http.Client{Timeout: requestTimeout}
 
 	req, err := http.NewRequest(http.MethodPost, apiURL, nil)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("error occurred on creating request: %w", err)
 	}
 
 	req.Header.Add("Authorization", "Bearer "+accessToken)
 
 	res, err := client.Do(req)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("error occurred on sending request: %w", err)
 	}
 	defer res.Body.Close()
 
@@ -284,7 +283,7 @@ func (s *Store) Publish(c Client, appID string) (result *PublishResponse, err er
 
 	err = json.Unmarshal(resultBody, &result)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("error occurred on unmarshaling response body: %w", err)
 	}
 
 	return result, nil

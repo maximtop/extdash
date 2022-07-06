@@ -180,7 +180,10 @@ func (s *Store) VersionID(c Client, appID, version string) (result string, err e
 	log.Printf("[DEBUG] Getting version ID for appID: %s, version: %s", appID, version)
 
 	const apiPath = "api/v5/addons/addon/"
-	apiURL := urlutil.JoinURL(s.URL, apiPath, appID, "versions") + "/?filter=all_with_unlisted"
+
+	queryString := url.Values{}
+	queryString.Add("filter", "all_with_unlisted")
+	apiURL := urlutil.JoinURL(s.URL, apiPath, appID, "versions") + "?" + queryString.Encode()
 
 	req, err := http.NewRequest(http.MethodGet, apiURL, nil)
 	if err != nil {

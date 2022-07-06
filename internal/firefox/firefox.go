@@ -334,7 +334,12 @@ type ReviewedStatus bool
 // UnmarshalJSON parses ReviewedStatus.
 // used because review status may be boolean or string
 func (w *ReviewedStatus) UnmarshalJSON(b []byte) error {
-	stringVal := string(b)
+	rawString := string(b)
+
+	stringVal, err := strconv.Unquote(rawString)
+	if err != nil {
+		stringVal = rawString
+	}
 
 	boolVal, err := strconv.ParseBool(stringVal)
 	if err == nil {
@@ -421,6 +426,7 @@ func (s *Store) AwaitValidation(c Client, appID, version string) (err error) {
 			log.Println("[DEBUG] Extension upload processed successfully")
 			break
 		} else {
+			log.Printf("[DEBUG] Upload not processed yet, retrying in: %s", retryInterval)
 			time.Sleep(retryInterval)
 		}
 	}
@@ -673,6 +679,7 @@ func (s *Store) AwaitSigning(c Client, appID, version string) (err error) {
 				return nil
 			}
 		} else {
+			log.Printf("[DEBUG] Extension is not processed yet, retry in %s", retryInterval)
 			time.Sleep(retryInterval)
 		}
 	}

@@ -167,12 +167,13 @@ func (s Store) Update(c Client, appID, filepath string, updateOptions UpdateOpti
 
 		log.Println("getting upload status...")
 
-		status, err := s.UploadStatus(c, appID, string(operationID))
+		status, err := s.UploadStatus(c, appID, operationID)
 		if err != nil {
 			return nil, err
 		}
 
 		if status.Status == InProgress.String() {
+			log.Printf("DEBUG: update is in progress, retry in: %s", updateOptions.RetryTimeout)
 			time.Sleep(updateOptions.RetryTimeout)
 
 			continue

@@ -34,12 +34,16 @@ func newAuthServer(t *testing.T, accessToken string) *httptest.Server {
 	}))
 }
 
+const (
+	clientID     = "test_client_id"
+	clientSecret = "test_client_secret"
+	accessToken  = "test_access_token"
+	appID        = "test_app_id"
+	operationID  = "test_operation_id"
+)
+
 func TestAuthorize(t *testing.T) {
 	assert := assert.New(t)
-
-	clientID := "test_client_id"
-	clientSecret := "test_client_secret"
-	accessToken := "test_access_token"
 
 	authServer := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
 		assert.Equal(req.Method, http.MethodPost)
@@ -71,10 +75,7 @@ func TestAuthorize(t *testing.T) {
 
 func TestUploadUpdate(t *testing.T) {
 	assert := assert.New(t)
-	accessToken := "test_access_token"
-	clientID := "test_client_id"
-	clientSecret := "test_client_secret"
-	appID := "test_app_id"
+
 	operationID := "test_operation_id"
 
 	authServer := newAuthServer(t, accessToken)
@@ -113,7 +114,7 @@ func TestUploadUpdate(t *testing.T) {
 
 func TestUploadStatus(t *testing.T) {
 	assert := assert.New(t)
-	accessToken := "test_access_token"
+
 	response := edge.UploadStatusResponse{
 		ID:              "{operationID}",
 		CreatedTime:     "Date Time",
@@ -123,10 +124,6 @@ func TestUploadStatus(t *testing.T) {
 		ErrorCode:       "Error Code",
 		Errors:          []edge.StatusError{{Message: "test error"}},
 	}
-	clientID := "test_client_id"
-	clientSecret := "test_client_secret"
-	appID := "test_app_id"
-	operationID := "test_operation_id"
 
 	authServer := newAuthServer(t, accessToken)
 	defer authServer.Close()
@@ -156,11 +153,6 @@ func TestUploadStatus(t *testing.T) {
 }
 
 func TestUpdate(t *testing.T) {
-	clientID := "test_client_id"
-	clientSecret := "test_client_secret"
-	accessToken := "test_access_token"
-	appID := "test_app_id"
-	operationID := "test_operation_id"
 	filepath := "testdata/test.txt"
 
 	t.Run("waits for successful response", func(t *testing.T) {
@@ -281,12 +273,6 @@ func TestUpdate(t *testing.T) {
 }
 
 func TestPublishExtension(t *testing.T) {
-	clientID := "test_client_id"
-	clientSecret := "test_client_secret"
-	accessToken := "test_access_token"
-	appID := "test_app_id"
-	operationID := "test_operation_id"
-
 	authServer := newAuthServer(t, accessToken)
 	defer authServer.Close()
 
@@ -315,11 +301,6 @@ func TestPublishExtension(t *testing.T) {
 }
 
 func TestPublishStatus(t *testing.T) {
-	clientID := "test_client_id"
-	clientSecret := "test_client_secret"
-	accessToken := "test_access_token"
-	appID := "test_app_id"
-	operationID := "test_operation_id"
 	statusResponse := edge.PublishStatusResponse{
 		ID:              "",
 		CreatedTime:     "",

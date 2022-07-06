@@ -4,6 +4,7 @@ import (
 	"io"
 	"net/http"
 	"net/http/httptest"
+	"path"
 	"testing"
 	"time"
 
@@ -12,13 +13,18 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
+const (
+	clientID     = "test_client_id"
+	clientSecret = "test_client_secret"
+	appID        = "test_app_id"
+	version      = "0.0.3"
+	status       = "test_status"
+	response     = "test_response"
+)
+
 func TestStatus(t *testing.T) {
 	assert := assert.New(t)
 
-	clientID := "test_client_id"
-	clientSecret := "test_client_secret"
-	appID := "test_app_id"
-	status := "test_status"
 	now := func() int64 {
 		return 1
 	}
@@ -51,9 +57,6 @@ func TestStatus(t *testing.T) {
 func TestUploadNew(t *testing.T) {
 	assert := assert.New(t)
 
-	status := "test_status"
-	clientID := "test_client_id"
-	clientSecret := "test_client_secret"
 	currentTimeSec := time.Now().Unix()
 	now := func() int64 {
 		return currentTimeSec
@@ -94,11 +97,7 @@ func TestUploadNew(t *testing.T) {
 
 func TestUploadUpdate(t *testing.T) {
 	assert := assert.New(t)
-	response := "test_response"
-	clientID := "test_client_id"
-	clientSecret := "test_client_secret"
-	appID := "test_app_id"
-	version := "0.0.3"
+
 	currentTimeSec := time.Now().Unix()
 	now := func() int64 {
 		return currentTimeSec
@@ -108,7 +107,7 @@ func TestUploadUpdate(t *testing.T) {
 
 	storeServer := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		assert.Equal(http.MethodPut, r.Method)
-		assert.Contains(r.URL.Path, "api/v5/addons/"+appID+"/versions/"+version)
+		assert.Contains(r.URL.Path, path.Join("api/v5/addons", appID, "versions", version))
 		authHeader, err := client.GenAuthHeader()
 		require.NoError(t, err)
 
@@ -137,10 +136,6 @@ func TestUploadUpdate(t *testing.T) {
 func TestUploadSource(t *testing.T) {
 	assert := assert.New(t)
 
-	appID := "test_app_id"
-	response := "test_response"
-	clientID := "test_client_id"
-	clientSecret := "test_client_secret"
 	testFile := "testdata/source.zip"
 	versionID := "test_version_id"
 

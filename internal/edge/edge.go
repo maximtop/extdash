@@ -4,13 +4,13 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
-	"log"
 	"net/http"
 	"net/url"
 	"os"
 	"strings"
 	"time"
 
+	"github.com/AdguardTeam/golibs/log"
 	"github.com/maximtop/extdash/internal/urlutil"
 )
 
@@ -167,7 +167,7 @@ func (s Store) Update(c Client, appID, filepath string, updateOptions UpdateOpti
 			return nil, fmt.Errorf("update failed due to timeout")
 		}
 
-		log.Println("getting upload status...")
+		log.Debug("getting upload status...")
 
 		status, err := s.UploadStatus(c, appID, operationID)
 		if err != nil {
@@ -177,7 +177,7 @@ func (s Store) Update(c Client, appID, filepath string, updateOptions UpdateOpti
 		}
 
 		if status.Status == InProgress.String() {
-			log.Printf("DEBUG: update is in progress, retry in: %s", updateOptions.RetryTimeout)
+			log.Debug("update is in progress, retry in: %s", updateOptions.RetryTimeout)
 			time.Sleep(updateOptions.RetryTimeout)
 
 			continue

@@ -3,7 +3,6 @@ package edge_test
 import (
 	"encoding/json"
 	"io"
-	"log"
 	"net/http"
 	"net/http/httptest"
 	"path"
@@ -267,7 +266,6 @@ func TestUpdate(t *testing.T) {
 		require.NoError(t, err)
 
 		_, err = store.Update(client, appID, filepath, updateOptions)
-		log.Println(err)
 		assert.ErrorContains(t, err, "update failed due to timeout")
 	})
 }

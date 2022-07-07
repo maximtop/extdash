@@ -5,7 +5,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
-	"log"
 	"mime/multipart"
 	"net/http"
 	"net/url"
@@ -14,6 +13,7 @@ import (
 	"strconv"
 	"time"
 
+	"github.com/AdguardTeam/golibs/log"
 	"github.com/golang-jwt/jwt/v4"
 	"github.com/maximtop/extdash/internal/fileutil"
 	"github.com/maximtop/extdash/internal/urlutil"
@@ -177,7 +177,7 @@ type VersionResponse struct {
 
 // VersionID retrieves version ID by version number.
 func (s *Store) VersionID(c Client, appID, version string) (result string, err error) {
-	log.Printf("[DEBUG] Getting version ID for appID: %s, version: %s", appID, version)
+	log.Debug("getting version ID for appID: %s, version: %s", appID, version)
 
 	const apiPath = "api/v5/addons/addon/"
 
@@ -233,7 +233,7 @@ func (s *Store) VersionID(c Client, appID, version string) (result string, err e
 		return "", fmt.Errorf("version %s not found", version)
 	}
 
-	log.Printf("[DEBUG] Version ID: %s", versionID)
+	log.Debug("Version ID: %s", versionID)
 
 	return versionID, nil
 }
@@ -241,7 +241,7 @@ func (s *Store) VersionID(c Client, appID, version string) (result string, err e
 // UploadSource uploads source code of the extension to the store.
 // Source can be uploaded only after the extension is validated.
 func (s *Store) UploadSource(c Client, appID, versionID, sourcePath string) (result []byte, err error) {
-	log.Printf("[DEBUG] Uploading source for appID: %s, versionID: %s", appID, versionID)
+	log.Debug("uploading source for appID: %s, versionID: %s", appID, versionID)
 
 	const apiPath = "api/v5/addons/addon/"
 
@@ -302,7 +302,7 @@ func (s *Store) UploadSource(c Client, appID, versionID, sourcePath string) (res
 		return nil, fmt.Errorf("got code %d, body: %q", res.StatusCode, body)
 	}
 
-	log.Println("[DEBUG] Successfully uploaded source")
+	log.Debug("successfully uploaded source")
 
 	return responseBody, nil
 }
@@ -358,7 +358,7 @@ func (w *ReviewedStatus) UnmarshalJSON(b []byte) error {
 // curl "https://addons.mozilla.org/api/v5/addons/@my-addon/versions/1.0/"
 //    -g -H "Authorization: JWT <jwt-token>"
 func (s *Store) UploadStatus(c Client, appID, version string) (status *UploadStatus, err error) {
-	log.Printf("[DEBUG] Getting upload status for appID: %s, version: %s", appID, version)
+	log.Debug("getting upload status for appID: %s, version: %s", appID, version)
 
 	const apiPath = "api/v5/addons"
 	apiURL := urlutil.JoinURL(s.URL, apiPath, appID, "versions", version)
@@ -399,7 +399,7 @@ func (s *Store) UploadStatus(c Client, appID, version string) (status *UploadSta
 		return nil, fmt.Errorf("[UploadStatus] wasn't able to unmarshal response body: %s, due to: %w", body, err)
 	}
 
-	log.Printf("[DEBUG] Received upload status: %+v", uploadStatus)
+	log.Debug("received upload status: %+v", uploadStatus)
 
 	return &uploadStatus, nil
 }
@@ -422,10 +422,10 @@ func (s *Store) AwaitValidation(c Client, appID, version string) (err error) {
 			return fmt.Errorf("[AwaitValidation] wasn't able to get upload status due to: %w", err)
 		}
 		if uploadStatus.Processed {
-			log.Println("[DEBUG] Extension upload processed successfully")
+			log.Debug("extension upload processed successfully")
 			break
 		} else {
-			log.Printf("[DEBUG] Upload not processed yet, retrying in: %s", retryInterval)
+			log.Debug("upload not processed yet, retrying in: %s", retryInterval)
 			time.Sleep(retryInterval)
 		}
 	}
@@ -441,7 +441,7 @@ func (s *Store) AwaitValidation(c Client, appID, version string) (err error) {
 //  -F "upload=@tmp/extension.zip" \
 //  "https://addons.mozilla.org/api/v5/addons/"
 func (s *Store) UploadNew(c Client, filepath string) (result []byte, err error) {
-	log.Printf("[DEBUG] Uploading new extension: %s", filepath)
+	log.Debug("uploading new extension: %s", filepath)
 
 	const apiPath = "api/v5/addons"
 
@@ -503,14 +503,14 @@ func (s *Store) UploadNew(c Client, filepath string) (result []byte, err error) 
 		return nil, fmt.Errorf("got code %d, body: %q", res.StatusCode, respBody)
 	}
 
-	log.Printf("[DEBUG] Uploaded new extension: %s, response: %s", filepath, respBody)
+	log.Debug("uploaded new extension: %s, response: %s", filepath, respBody)
 
 	return respBody, nil
 }
 
 // Insert uploads extension to the amo for the first time.
 func (s *Store) Insert(c Client, filepath, sourcepath string) (err error) {
-	log.Printf("[DEBUG] Start uploading new extension: %s, with source: %s", filepath, sourcepath)
+	log.Debug("start uploading new extension: %s, with source: %s", filepath, sourcepath)
 
 	_, err = s.UploadNew(c, filepath)
 	if err != nil {
@@ -545,7 +545,7 @@ func (s *Store) Insert(c Client, filepath, sourcepath string) (err error) {
 
 // UploadUpdate uploads the extension update.
 func (s *Store) UploadUpdate(c Client, appID, version, filepath string) (result []byte, err error) {
-	log.Printf("[DEBUG] Start uploading update for extension: %s", filepath)
+	log.Debug("start uploading update for extension: %s", filepath)
 
 	const apiPath = "api/v5/addons"
 
@@ -605,7 +605,7 @@ func (s *Store) UploadUpdate(c Client, appID, version, filepath string) (result 
 		return nil, fmt.Errorf("got code %d, body: %q", res.StatusCode, responseBody)
 	}
 
-	log.Printf("[DEBUG] Successfully uploaded update for extension: %s, response: %s", filepath, responseBody)
+	log.Debug("Successfully uploaded update for extension: %s, response: %s", filepath, responseBody)
 
 	return responseBody, nil
 }
@@ -613,7 +613,7 @@ func (s *Store) UploadUpdate(c Client, appID, version, filepath string) (result 
 // Update uploads new version of extension to the store
 // Before uploading it reads manifest.json for getting extension version and uuid.
 func (s *Store) Update(c Client, filepath, sourcepath string) (err error) {
-	log.Printf("[DEBUG] Start uploading update for extension: %s, with source: %s", filepath, sourcepath)
+	log.Debug("start uploading update for extension: %s, with source: %s", filepath, sourcepath)
 
 	manifest, err := parseManifest(filepath)
 	if err != nil {
@@ -648,7 +648,7 @@ func (s *Store) Update(c Client, filepath, sourcepath string) (err error) {
 
 // AwaitSigning waits for the extension to be signed.
 func (s *Store) AwaitSigning(c Client, appID, version string) (err error) {
-	log.Printf("[DEBUG] Start waiting for signing of extension: %s", appID)
+	log.Debug("start waiting for signing of extension: %s", appID)
 
 	// TODO(maximtop): move constants to config
 	const retryInterval = time.Second
@@ -674,11 +674,11 @@ func (s *Store) AwaitSigning(c Client, appID, version string) (err error) {
 				return fmt.Errorf("[AwaitSigning] extension won't be signed automatically, status: %+v", uploadStatus)
 			}
 			if signedAndReady {
-				log.Printf("[AwaitSigning] Extension is signed and ready: %s", appID)
+				log.Debug("[AwaitSigning] extension is signed and ready: %s", appID)
 				return nil
 			}
 		} else {
-			log.Printf("[AwaitSigning] Extension is not processed yet, retry in %s", retryInterval)
+			log.Debug("[AwaitSigning] extension is not processed yet, retry in %s", retryInterval)
 			time.Sleep(retryInterval)
 		}
 	}
@@ -688,7 +688,7 @@ func (s *Store) AwaitSigning(c Client, appID, version string) (err error) {
 
 // DownloadSigned downloads signed extension.
 func (s *Store) DownloadSigned(c Client, appID, version string) (err error) {
-	log.Printf("[DEBUG] Start downloading signed extension: %s", appID)
+	log.Debug("start downloading signed extension: %s", appID)
 
 	uploadStatus, err := s.UploadStatus(c, appID, version)
 	if err != nil {
@@ -751,7 +751,7 @@ func (s *Store) DownloadSigned(c Client, appID, version string) (err error) {
 // Sign uploads the extension to the store, waits for signing, downloads and saves the signed
 // extension in the directory
 func (s *Store) Sign(c Client, filepath string) (err error) {
-	log.Printf("[DEBUG] Start signing extension: %s", filepath)
+	log.Debug("start signing extension: %s", filepath)
 
 	manifest, err := parseManifest(filepath)
 	if err != nil {

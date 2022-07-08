@@ -8,6 +8,8 @@ import (
 	"testing"
 	"time"
 
+	"github.com/AdguardTeam/golibs/errors"
+
 	"github.com/maximtop/extdash/internal/firefox"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -73,8 +75,8 @@ func TestUploadNew(t *testing.T) {
 		assert.Contains(r.URL.Path, "/api/v5/addons")
 		file, _, err := r.FormFile("upload")
 		require.NoError(t, err)
+		defer func() { err = errors.WithDeferred(err, file.Close()) }()
 
-		defer file.Close()
 		body, err := io.ReadAll(file)
 		require.NoError(t, err)
 
@@ -114,8 +116,8 @@ func TestUploadUpdate(t *testing.T) {
 		assert.Equal(r.Header.Get("Authorization"), authHeader)
 		file, header, err := r.FormFile("upload")
 		require.NoError(t, err)
+		defer func() { err = errors.WithDeferred(err, file.Close()) }()
 
-		defer file.Close()
 		assert.Equal(header.Filename, "extension.zip")
 
 		w.WriteHeader(http.StatusCreated)
@@ -153,9 +155,8 @@ func TestUploadSource(t *testing.T) {
 		assert.Contains(r.Header.Get("Content-Type"), "multipart/form-data")
 
 		file, header, err := r.FormFile("source")
-
 		require.NoError(t, err)
-		defer file.Close()
+		defer func() { err = errors.WithDeferred(err, file.Close()) }()
 
 		assert.Equal(header.Filename, "source.zip")
 		_, err = w.Write([]byte(response))

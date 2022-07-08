@@ -10,6 +10,8 @@ import (
 	"strings"
 	"time"
 
+	"github.com/AdguardTeam/golibs/errors"
+
 	"github.com/AdguardTeam/golibs/log"
 	"github.com/maximtop/extdash/internal/urlutil"
 )
@@ -202,7 +204,12 @@ func (s Store) UploadUpdate(c Client, appID, filepath string) (result string, er
 	if err != nil {
 		return "", fmt.Errorf("[UploadUpdate] failed to open file: %s due to error: %w", filepath, err)
 	}
-	defer file.Close()
+	defer func() {
+		err := errors.WithDeferred(err, file.Close())
+		if err != nil {
+			log.Debug("[UploadUpdate] failed to close file: %s due to error: %s", filepath, err)
+		}
+	}()
 
 	req, err := http.NewRequest(http.MethodPost, apiURL, file)
 	if err != nil {

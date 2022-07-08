@@ -4,6 +4,8 @@ import (
 	"archive/zip"
 	"fmt"
 	"io"
+
+	"github.com/AdguardTeam/golibs/errors"
 )
 
 const (
@@ -18,7 +20,7 @@ func readFile(file *zip.File) (result []byte, err error) {
 	if err != nil {
 		return nil, fmt.Errorf("[readFile] error occurred on opening file: %w", err)
 	}
-	defer reader.Close()
+	defer func() { err = errors.WithDeferred(err, reader.Close()) }()
 
 	content, err := io.ReadAll(reader)
 	if err != nil {
@@ -34,7 +36,7 @@ func ReadFileFromZip(zipFile, filename string) (result []byte, err error) {
 	if err != nil {
 		return nil, fmt.Errorf("[ReadFileFromZip] error occurred on opening zip file: %w", err)
 	}
-	defer reader.Close()
+	defer func() { err = errors.WithDeferred(err, reader.Close()) }()
 
 	for _, file := range reader.File {
 		if file.Name == filename {

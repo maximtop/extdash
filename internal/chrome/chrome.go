@@ -2,7 +2,6 @@ package chrome
 
 import (
 	"encoding/json"
-	"errors"
 	"fmt"
 	"io"
 	"net/http"
@@ -10,6 +9,7 @@ import (
 	"os"
 	"time"
 
+	"github.com/AdguardTeam/golibs/errors"
 	"github.com/maximtop/extdash/internal/fileutil"
 	"github.com/maximtop/extdash/internal/urlutil"
 )
@@ -43,14 +43,15 @@ func (c *Client) Authorize() (accessToken string, err error) {
 	if err != nil {
 		return "", fmt.Errorf("error occurred on http.PostForm: %w", err)
 	}
-	defer res.Body.Close()
+
+	defer func() { err = errors.WithDeferred(err, res.Body.Close()) }()
 
 	body, err := io.ReadAll(io.LimitReader(res.Body, maxReadLimit))
 	if err != nil {
 		return "", fmt.Errorf("error occurred on reading response body: %w", err)
 	}
 
-	var result = &AuthorizeResponse{}
+	result := &AuthorizeResponse{}
 
 	err = json.Unmarshal(body, result)
 	if err != nil {
@@ -118,7 +119,8 @@ func (s *Store) Status(c Client, appID string) (result *StatusResponse, err erro
 	if err != nil {
 		return nil, fmt.Errorf("error occurred on sending request: %w", err)
 	}
-	defer res.Body.Close()
+
+	defer func() { err = errors.WithDeferred(err, res.Body.Close()) }()
 
 	body, err := io.ReadAll(io.LimitReader(res.Body, maxReadLimit))
 
@@ -169,7 +171,7 @@ func (s *Store) Insert(c Client, filePath string) (result *InsertResponse, err e
 	if err != nil {
 		return nil, fmt.Errorf("error occurred on sending request: %w", err)
 	}
-	defer res.Body.Close()
+	defer func() { err = errors.WithDeferred(err, res.Body.Close()) }()
 
 	responseBody, err := io.ReadAll(io.LimitReader(res.Body, maxReadLimit))
 	if err != nil {
@@ -177,7 +179,7 @@ func (s *Store) Insert(c Client, filePath string) (result *InsertResponse, err e
 	}
 
 	if res.StatusCode != http.StatusOK {
-		return nil, errors.New(string(responseBody))
+		return nil, fmt.Errorf("got code %d, body: %q", res.StatusCode, responseBody)
 	}
 
 	err = json.Unmarshal(responseBody, &result)
@@ -223,7 +225,7 @@ func (s *Store) Update(c Client, appID, filePath string) (result *UpdateResponse
 	if err != nil {
 		return nil, fmt.Errorf("error occurred on sending request: %w", err)
 	}
-	defer res.Body.Close()
+	defer func() { err = errors.WithDeferred(err, res.Body.Close()) }()
 
 	responseBody, err := io.ReadAll(io.LimitReader(res.Body, maxReadLimit))
 	if err != nil {
@@ -231,7 +233,7 @@ func (s *Store) Update(c Client, appID, filePath string) (result *UpdateResponse
 	}
 
 	if res.StatusCode != http.StatusOK {
-		return nil, errors.New(string(responseBody))
+		return nil, fmt.Errorf("got code %d, body: %q", res.StatusCode, responseBody)
 	}
 
 	err = json.Unmarshal(responseBody, &result)
@@ -273,12 +275,12 @@ func (s *Store) Publish(c Client, appID string) (result *PublishResponse, err er
 	if err != nil {
 		return nil, fmt.Errorf("error occurred on sending request: %w", err)
 	}
-	defer res.Body.Close()
+	defer func() { err = errors.WithDeferred(err, res.Body.Close()) }()
 
 	resultBody, err := io.ReadAll(io.LimitReader(res.Body, maxReadLimit))
 
 	if res.StatusCode != http.StatusOK {
-		return nil, errors.New(string(resultBody))
+		return nil, fmt.Errorf("got code %d, body: %q", res.StatusCode, resultBody)
 	}
 
 	err = json.Unmarshal(resultBody, &result)

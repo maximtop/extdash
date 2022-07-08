@@ -13,6 +13,8 @@ import (
 	"strconv"
 	"time"
 
+	"github.com/AdguardTeam/golibs/errors"
+
 	"github.com/AdguardTeam/golibs/log"
 	"github.com/golang-jwt/jwt/v4"
 	"github.com/maximtop/extdash/internal/fileutil"
@@ -146,7 +148,7 @@ func (s *Store) Status(c Client, appID string) (result []byte, err error) {
 	if err != nil {
 		return nil, fmt.Errorf("[Status] wasn't able to send request due to: %w", err)
 	}
-	defer res.Body.Close()
+	defer func() { err = errors.WithDeferred(err, res.Body.Close()) }()
 
 	body, err := io.ReadAll(io.LimitReader(res.Body, maxReadLimit))
 	if err != nil {
@@ -251,7 +253,7 @@ func (s *Store) UploadSource(c Client, appID, versionID, sourcePath string) (res
 	if err != nil {
 		return nil, fmt.Errorf("[UploadSource] wasn't able to open file %s due to: %w", sourcePath, err)
 	}
-	defer file.Close()
+	defer func() { err = errors.WithDeferred(err, file.Close()) }()
 
 	body := &bytes.Buffer{}
 	writer := multipart.NewWriter(body)
@@ -290,8 +292,7 @@ func (s *Store) UploadSource(c Client, appID, versionID, sourcePath string) (res
 	if err != nil {
 		return nil, fmt.Errorf("[UploadSource] wasn't able to send request due to: %w", err)
 	}
-
-	defer res.Body.Close()
+	defer func() { err = errors.WithDeferred(err, res.Body.Close()) }()
 
 	responseBody, err := io.ReadAll(io.LimitReader(res.Body, maxReadLimit))
 	if err != nil {
@@ -381,7 +382,7 @@ func (s *Store) UploadStatus(c Client, appID, version string) (status *UploadSta
 	if err != nil {
 		return nil, fmt.Errorf("[UploadStatus] wasn't able to send request due to: %w", err)
 	}
-	defer res.Body.Close()
+	defer func() { err = errors.WithDeferred(err, res.Body.Close()) }()
 
 	body, err := io.ReadAll(io.LimitReader(res.Body, maxReadLimit))
 	if err != nil {
@@ -410,7 +411,7 @@ func (s *Store) AwaitValidation(c Client, appID, version string) (err error) {
 	const retryInterval = time.Second
 	const maxAwaitTime = time.Minute * 20
 
-	var startTime = time.Now()
+	startTime := time.Now()
 
 	for {
 		if (time.Now().Sub(startTime)) > maxAwaitTime {
@@ -453,7 +454,7 @@ func (s *Store) UploadNew(c Client, filepath string) (result []byte, err error) 
 	if err != nil {
 		return nil, fmt.Errorf("[UploadNew] wasn't able to open file: %s, due to: %w", filepath, err)
 	}
-	defer file.Close()
+	defer func() { err = errors.WithDeferred(err, file.Close()) }()
 
 	body := &bytes.Buffer{}
 	writer := multipart.NewWriter(body)
@@ -492,7 +493,7 @@ func (s *Store) UploadNew(c Client, filepath string) (result []byte, err error) 
 	if err != nil {
 		return nil, fmt.Errorf("[UploadNew] wasn't able to send request due to: %w", err)
 	}
-	defer res.Body.Close()
+	defer func() { err = errors.WithDeferred(err, res.Body.Close()) }()
 
 	respBody, err := io.ReadAll(io.LimitReader(res.Body, maxReadLimit))
 	if err != nil {
@@ -553,7 +554,7 @@ func (s *Store) UploadUpdate(c Client, appID, version, filepath string) (result 
 	if err != nil {
 		return nil, fmt.Errorf("[UploadUpdate] wasn't able to open file: %s, due to: %w", filepath, err)
 	}
-	defer file.Close()
+	defer func() { err = errors.WithDeferred(err, file.Close()) }()
 
 	apiURL := urlutil.JoinURL(s.URL, apiPath, appID, "versions", version) + "/" // trailing slash is required for this request
 
@@ -594,7 +595,7 @@ func (s *Store) UploadUpdate(c Client, appID, version, filepath string) (result 
 	if err != nil {
 		return nil, fmt.Errorf("[UploadUpdate] wasn't able to send request due to: %w", err)
 	}
-	defer res.Body.Close()
+	defer func() { err = errors.WithDeferred(err, res.Body.Close()) }()
 
 	responseBody, err := io.ReadAll(io.LimitReader(res.Body, maxReadLimit))
 	if err != nil {
@@ -654,10 +655,10 @@ func (s *Store) AwaitSigning(c Client, appID, version string) (err error) {
 	const retryInterval = time.Second
 	const maxAwaitTime = time.Minute * 20
 
-	var startTime = time.Now()
+	startTime := time.Now()
 
 	for {
-		if (time.Now().Sub(startTime)) > maxAwaitTime {
+		if time.Since(startTime) > maxAwaitTime {
 			return fmt.Errorf("await signing timeout")
 		}
 
@@ -666,8 +667,8 @@ func (s *Store) AwaitSigning(c Client, appID, version string) (err error) {
 			return fmt.Errorf("[AwaitSigning] wasn't able to get upload status: %s, version: %s, due to: %w", appID, version, err)
 		}
 
-		var signedAndReady = uploadStatus.Valid && uploadStatus.Active && bool(uploadStatus.Reviewed) && len(uploadStatus.Files) > 0
-		var requiresManualReview = uploadStatus.Valid && !uploadStatus.AutomatedSigning
+		signedAndReady := uploadStatus.Valid && uploadStatus.Active && bool(uploadStatus.Reviewed) && len(uploadStatus.Files) > 0
+		requiresManualReview := uploadStatus.Valid && !uploadStatus.AutomatedSigning
 
 		if signedAndReady || requiresManualReview {
 			if requiresManualReview {
@@ -682,8 +683,6 @@ func (s *Store) AwaitSigning(c Client, appID, version string) (err error) {
 			time.Sleep(retryInterval)
 		}
 	}
-
-	return nil
 }
 
 // DownloadSigned downloads signed extension.
@@ -699,7 +698,7 @@ func (s *Store) DownloadSigned(c Client, appID, version string) (err error) {
 		return fmt.Errorf("no files to download")
 	}
 
-	var downloadURL = uploadStatus.Files[0].DownloadURL
+	downloadURL := uploadStatus.Files[0].DownloadURL
 
 	client := http.Client{Timeout: requestTimeout}
 
@@ -719,7 +718,7 @@ func (s *Store) DownloadSigned(c Client, appID, version string) (err error) {
 	if err != nil {
 		return fmt.Errorf("[DownloadSigned] wasn't able to send request due to: %w", err)
 	}
-	defer res.Body.Close()
+	defer func() { err = errors.WithDeferred(err, res.Body.Close()) }()
 
 	responseBody, err := io.ReadAll(io.LimitReader(res.Body, maxReadLimit))
 	if err != nil {
@@ -731,7 +730,7 @@ func (s *Store) DownloadSigned(c Client, appID, version string) (err error) {
 		return fmt.Errorf("[DownloadSigned] wasn't able to parse download URL: %s due to: %w", downloadURL, err)
 	}
 
-	var filename = path.Base(parsedURL.Path)
+	filename := path.Base(parsedURL.Path)
 
 	// save response to file
 	file, err := os.Create(filename)
@@ -743,7 +742,7 @@ func (s *Store) DownloadSigned(c Client, appID, version string) (err error) {
 	if err != nil {
 		return fmt.Errorf("[DownloadSigned] wasn't able to write response body to file: %s due to: %w", filename, err)
 	}
-	defer file.Close()
+	defer func() { err = errors.WithDeferred(err, file.Close()) }()
 
 	return nil
 }

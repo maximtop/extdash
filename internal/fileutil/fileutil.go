@@ -18,13 +18,13 @@ const (
 func readFile(file *zip.File) (result []byte, err error) {
 	reader, err := file.Open()
 	if err != nil {
-		return nil, fmt.Errorf("[readFile] error occurred on opening file: %w", err)
+		return nil, fmt.Errorf("opening file: %w", err)
 	}
 	defer func() { err = errors.WithDeferred(err, reader.Close()) }()
 
 	content, err := io.ReadAll(reader)
 	if err != nil {
-		return nil, fmt.Errorf("[readFile] error occurred on reading file: %w", err)
+		return nil, fmt.Errorf("reading file: %w", err)
 	}
 
 	return content, err
@@ -34,7 +34,7 @@ func readFile(file *zip.File) (result []byte, err error) {
 func ReadFileFromZip(zipFile, filename string) (result []byte, err error) {
 	reader, err := zip.OpenReader(zipFile)
 	if err != nil {
-		return nil, fmt.Errorf("[ReadFileFromZip] error occurred on opening zip file: %w", err)
+		return nil, fmt.Errorf("opening zip file: %w", err)
 	}
 	defer func() { err = errors.WithDeferred(err, reader.Close()) }()
 
@@ -42,12 +42,12 @@ func ReadFileFromZip(zipFile, filename string) (result []byte, err error) {
 		if file.Name == filename {
 			result, err := readFile(file)
 			if err != nil {
-				return nil, fmt.Errorf("[ReadFileFromZip] error occurred on reading file: %w", err)
+				return nil, fmt.Errorf("reading file: %w", err)
 			}
 
 			return result, nil
 		}
 	}
 
-	return result, fmt.Errorf("was unable to find file: %s in zip", filename)
+	return result, fmt.Errorf("unable to find file: %s in zip", filename)
 }

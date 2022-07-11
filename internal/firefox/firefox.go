@@ -14,7 +14,6 @@ import (
 	"time"
 
 	"github.com/AdguardTeam/golibs/errors"
-
 	"github.com/AdguardTeam/golibs/log"
 	"github.com/golang-jwt/jwt/v4"
 	"github.com/maximtop/extdash/internal/fileutil"
@@ -78,7 +77,7 @@ func (c Client) GenAuthHeader() (result string, err error) {
 
 	signedToken, err := token.SignedString([]byte(c.clientSecret))
 	if err != nil {
-		return "", fmt.Errorf("wasn't able to sign token due to: %w", err)
+		return "", fmt.Errorf("signing token: %w", err)
 	}
 
 	return "JWT " + signedToken, nil
@@ -93,7 +92,7 @@ type Store struct {
 func NewStore(rawURL string) (s Store, err error) {
 	URL, err := url.Parse(rawURL)
 	if err != nil {
-		return Store{}, fmt.Errorf("wasn't able to parse url %s due to: %w", rawURL, err)
+		return Store{}, fmt.Errorf("failed parse url %s due to: %w", rawURL, err)
 	}
 
 	return Store{URL: URL}, nil
@@ -113,12 +112,12 @@ type Manifest struct {
 func parseManifest(zipFilepath string) (result Manifest, err error) {
 	fileContent, err := fileutil.ReadFileFromZip(zipFilepath, "manifest.json")
 	if err != nil {
-		return Manifest{}, fmt.Errorf("[parseManifest] wasn't able to read manifest.json from zip file %s due to: %w", zipFilepath, err)
+		return Manifest{}, fmt.Errorf("can't read manifest.json from zip file %s due to: %w", zipFilepath, err)
 	}
 
 	err = json.Unmarshal(fileContent, &result)
 	if err != nil {
-		return Manifest{}, fmt.Errorf("[parseManifest] wasn't able to unmarshal manifest.json from zip file %s due to: %w", zipFilepath, err)
+		return Manifest{}, fmt.Errorf("can't unmarshal manifest.json %s due to: %w", zipFilepath, err)
 	}
 
 	return result, nil
@@ -132,12 +131,12 @@ func (s *Store) Status(c Client, appID string) (result []byte, err error) {
 
 	req, err := http.NewRequest(http.MethodGet, apiURL, nil)
 	if err != nil {
-		return nil, fmt.Errorf("[Status] wasn't able to create request due to: %w", err)
+		return nil, fmt.Errorf("creating request: %w", err)
 	}
 
 	authHeader, err := c.GenAuthHeader()
 	if err != nil {
-		return nil, fmt.Errorf("[Status] wasn't able to generate auth header due to: %w", err)
+		return nil, fmt.Errorf("generating auth header: %w", err)
 	}
 
 	req.Header.Add("Authorization", authHeader)
@@ -146,13 +145,13 @@ func (s *Store) Status(c Client, appID string) (result []byte, err error) {
 
 	res, err := client.Do(req)
 	if err != nil {
-		return nil, fmt.Errorf("[Status] wasn't able to send request due to: %w", err)
+		return nil, fmt.Errorf("sending request: %w", err)
 	}
 	defer func() { err = errors.WithDeferred(err, res.Body.Close()) }()
 
 	body, err := io.ReadAll(io.LimitReader(res.Body, maxReadLimit))
 	if err != nil {
-		return nil, fmt.Errorf("[Status] wasn't able to read response body due to: %w", err)
+		return nil, fmt.Errorf("reading response body: %w", err)
 	}
 
 	if res.StatusCode != http.StatusOK {
@@ -189,12 +188,12 @@ func (s *Store) VersionID(c Client, appID, version string) (result string, err e
 
 	req, err := http.NewRequest(http.MethodGet, apiURL, nil)
 	if err != nil {
-		return "", fmt.Errorf("[VersionID] wasn't able to create request due to: %w", err)
+		return "", fmt.Errorf("creating request: %w", err)
 	}
 
 	authHeader, err := c.GenAuthHeader()
 	if err != nil {
-		return "", fmt.Errorf("[VersionID] wasn't able to generate auth header due to: %w", err)
+		return "", fmt.Errorf("generating auth header: %w", err)
 	}
 
 	req.Header.Add("Authorization", authHeader)
@@ -202,13 +201,13 @@ func (s *Store) VersionID(c Client, appID, version string) (result string, err e
 	client := &http.Client{Timeout: requestTimeout}
 	res, err := client.Do(req)
 	if err != nil {
-		return "", fmt.Errorf("[VersionID] wasn't able to send request due to: %w", err)
+		return "", fmt.Errorf("sending request: %w", err)
 	}
-	defer res.Body.Close()
+	defer func() { err = errors.WithDeferred(err, res.Body.Close()) }()
 
 	body, err := io.ReadAll(io.LimitReader(res.Body, maxReadLimit))
 	if err != nil {
-		return "", fmt.Errorf("[VersionID] wasn't able to read response body due to: %w", err)
+		return "", fmt.Errorf("reading response body: %w", err)
 	}
 
 	if res.StatusCode != http.StatusOK {
@@ -219,7 +218,7 @@ func (s *Store) VersionID(c Client, appID, version string) (result string, err e
 
 	err = json.Unmarshal(body, &versions)
 	if err != nil {
-		return "", fmt.Errorf("[VersionID] wasn't able to unmarshal response body: %s, due to: %w", body, err)
+		return "", fmt.Errorf("unmarshalling response body: %s, error: %w", body, err)
 	}
 
 	var versionID string
@@ -251,7 +250,7 @@ func (s *Store) UploadSource(c Client, appID, versionID, sourcePath string) (res
 
 	file, err := os.Open(sourcePath)
 	if err != nil {
-		return nil, fmt.Errorf("[UploadSource] wasn't able to open file %s due to: %w", sourcePath, err)
+		return nil, fmt.Errorf("opening file %s, error: %w", sourcePath, err)
 	}
 	defer func() { err = errors.WithDeferred(err, file.Close()) }()
 
@@ -260,29 +259,29 @@ func (s *Store) UploadSource(c Client, appID, versionID, sourcePath string) (res
 
 	part, err := writer.CreateFormFile("source", file.Name())
 	if err != nil {
-		return nil, fmt.Errorf("[UploadSource] wasn't able to create form file due to: %w", err)
+		return nil, fmt.Errorf("creating form file: %w", err)
 	}
 
 	_, err = io.Copy(part, file)
 	if err != nil {
-		return nil, fmt.Errorf("[UploadSource] wasn't able to copy file %s to form file due to: %w", sourcePath, err)
+		return nil, fmt.Errorf("can't copy file: %s, error: %w", sourcePath, err)
 	}
 
 	err = writer.Close()
 	if err != nil {
-		return nil, fmt.Errorf("[UploadSource] wasn't able to close writer due to: %w", err)
+		return nil, fmt.Errorf("closing writer: %w", err)
 	}
 
 	req, err := http.NewRequest(http.MethodPatch, apiURL, body)
 	if err != nil {
-		return nil, fmt.Errorf("[UploadSource] wasn't able to create request due to: %w", err)
+		return nil, fmt.Errorf("creating request: %w", err)
 	}
 
 	req.Header.Set("Content-Type", writer.FormDataContentType())
 
 	authHeader, err := c.GenAuthHeader()
 	if err != nil {
-		return nil, fmt.Errorf("[UploadSource] wasn't able to generate auth header due to: %w", err)
+		return nil, fmt.Errorf("generating header: %w", err)
 	}
 
 	req.Header.Add("Authorization", authHeader)
@@ -290,17 +289,17 @@ func (s *Store) UploadSource(c Client, appID, versionID, sourcePath string) (res
 	client := &http.Client{Timeout: requestTimeout}
 	res, err := client.Do(req)
 	if err != nil {
-		return nil, fmt.Errorf("[UploadSource] wasn't able to send request due to: %w", err)
+		return nil, fmt.Errorf("sending request: %w", err)
 	}
 	defer func() { err = errors.WithDeferred(err, res.Body.Close()) }()
 
 	responseBody, err := io.ReadAll(io.LimitReader(res.Body, maxReadLimit))
 	if err != nil {
-		return nil, fmt.Errorf("[UploadSource] wasn't able to read response body due to: %w", err)
+		return nil, fmt.Errorf("reading body: %w", err)
 	}
 
 	if res.StatusCode != http.StatusOK {
-		return nil, fmt.Errorf("got code %d, body: %q", res.StatusCode, body)
+		return nil, fmt.Errorf("unexpected status code %d, body: %q", res.StatusCode, body)
 	}
 
 	log.Debug("successfully uploaded source")
@@ -366,12 +365,12 @@ func (s *Store) UploadStatus(c Client, appID, version string) (status *UploadSta
 
 	req, err := http.NewRequest(http.MethodGet, apiURL, nil)
 	if err != nil {
-		return nil, fmt.Errorf("[UploadStatus] wasn't able to create request due to: %w", err)
+		return nil, fmt.Errorf("creating request: %w", err)
 	}
 
 	authHeader, err := c.GenAuthHeader()
 	if err != nil {
-		return nil, fmt.Errorf("[UploadStatus] wasn't able to generate auth header due to: %w", err)
+		return nil, fmt.Errorf("generating header: %w", err)
 	}
 
 	req.Header.Add("Authorization", authHeader)
@@ -380,24 +379,24 @@ func (s *Store) UploadStatus(c Client, appID, version string) (status *UploadSta
 
 	res, err := client.Do(req)
 	if err != nil {
-		return nil, fmt.Errorf("[UploadStatus] wasn't able to send request due to: %w", err)
+		return nil, fmt.Errorf("sending request: %w", err)
 	}
 	defer func() { err = errors.WithDeferred(err, res.Body.Close()) }()
 
 	body, err := io.ReadAll(io.LimitReader(res.Body, maxReadLimit))
 	if err != nil {
-		return nil, fmt.Errorf("[UploadStatus] wasn't able to read response body due to: %w", err)
+		return nil, fmt.Errorf("reading response body: %w", err)
 	}
 
 	if res.StatusCode != http.StatusOK {
-		return nil, fmt.Errorf("got code %d, body: %q", res.StatusCode, body)
+		return nil, fmt.Errorf("unexpected code %d, body: %q", res.StatusCode, body)
 	}
 
 	var uploadStatus UploadStatus
 
 	err = json.Unmarshal(body, &uploadStatus)
 	if err != nil {
-		return nil, fmt.Errorf("[UploadStatus] wasn't able to unmarshal response body: %s, due to: %w", body, err)
+		return nil, fmt.Errorf("unmarshalling response body: %s, due to: %w", body, err)
 	}
 
 	log.Debug("received upload status: %+v", uploadStatus)
@@ -420,7 +419,7 @@ func (s *Store) AwaitValidation(c Client, appID, version string) (err error) {
 
 		uploadStatus, err := s.UploadStatus(c, appID, version)
 		if err != nil {
-			return fmt.Errorf("[AwaitValidation] wasn't able to get upload status due to: %w", err)
+			return fmt.Errorf("getting upload status: %w", err)
 		}
 		if uploadStatus.Processed {
 			log.Debug("extension upload processed successfully")
@@ -452,7 +451,7 @@ func (s *Store) UploadNew(c Client, filepath string) (result []byte, err error) 
 
 	file, err := os.Open(filepath)
 	if err != nil {
-		return nil, fmt.Errorf("[UploadNew] wasn't able to open file: %s, due to: %w", filepath, err)
+		return nil, fmt.Errorf("can't open file: %s, due to: %w", filepath, err)
 	}
 	defer func() { err = errors.WithDeferred(err, file.Close()) }()
 
@@ -461,12 +460,12 @@ func (s *Store) UploadNew(c Client, filepath string) (result []byte, err error) 
 
 	part, err := writer.CreateFormFile("upload", file.Name())
 	if err != nil {
-		return nil, fmt.Errorf("[UploadNew] wasn't able to create form file due to: %w", err)
+		return nil, fmt.Errorf("creating form file: %w", err)
 	}
 
 	_, err = io.Copy(part, file)
 	if err != nil {
-		return nil, fmt.Errorf("[UploadNew] wasn't able to copy file to form file due to: %w", err)
+		return nil, fmt.Errorf("copying: %w", err)
 	}
 
 	err = writer.Close()

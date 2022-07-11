@@ -38,7 +38,7 @@ extdash [global options] command [command options] [arguments...]
 
 To get status of the extension in the Chrome store:
 ```sh
-extdash status chrome -app <app_id>
+./extdash status chrome -app <app_id>
 ```
 
 To upload new extension to the Mozilla store:

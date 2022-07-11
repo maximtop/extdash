@@ -413,7 +413,7 @@ func (s *Store) AwaitValidation(c Client, appID, version string) (err error) {
 	startTime := time.Now()
 
 	for {
-		if (time.Now().Sub(startTime)) > maxAwaitTime {
+		if time.Since(startTime) > maxAwaitTime {
 			return fmt.Errorf("await validation timeout")
 		}
 

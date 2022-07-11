@@ -20,7 +20,7 @@ EDGE_ACCESS_TOKEN_URL=<access_token_url>
 
 After that, you can use the CLI.
 
-```
+```sh
 extdash [global options] command [command options] [arguments...]
 ```
 
@@ -37,12 +37,12 @@ extdash [global options] command [command options] [arguments...]
 #### Examples:
 
 To get status of the extension in the Chrome store:
-```
+```sh
 extdash status chrome -app <app_id>
 ```
 
 To upload new extension to the Mozilla store:
-```
+```sh
 ./extdash insert firefox -f /path/to/file -s /path/to/source
 ```
 

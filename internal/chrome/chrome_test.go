@@ -12,6 +12,14 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
+const (
+	clientID     = "test_client_id"
+	clientSecret = "test_client_secret"
+	accessToken  = "test_access_token"
+	refreshToken = "test_refresh_token"
+	appID        = "test_app_id"
+)
+
 func createAuthServer(t *testing.T, accessToken string) *httptest.Server {
 	t.Helper()
 
@@ -30,11 +38,6 @@ func createAuthServer(t *testing.T, accessToken string) *httptest.Server {
 
 func TestAuthorize(t *testing.T) {
 	assert := assert.New(t)
-
-	accessToken := "access token"
-	clientID := "client id"
-	clientSecret := "client secret"
-	refreshToken := "refresh token"
 
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		assert.Equal(http.MethodPost, r.Method)
@@ -72,12 +75,6 @@ func TestAuthorize(t *testing.T) {
 
 func TestStatus(t *testing.T) {
 	assert := assert.New(t)
-
-	appID := "test_app_id"
-	accessToken := "test_access_token"
-	clientID := "test_client_id"
-	clientSecret := "test_client_secret"
-	refreshToken := "test_refresh_token"
 
 	status := chrome.StatusResponse{
 		Kind:        "test kind",
@@ -129,10 +126,6 @@ func TestStatus(t *testing.T) {
 func TestInsert(t *testing.T) {
 	assert := assert.New(t)
 
-	accessToken := "test_access_token"
-	clientID := "test_client_id"
-	clientSecret := "test_client_secret"
-	refreshToken := "test_refresh_token"
 	insertResponse := chrome.InsertResponse{
 		Kind:        "chromewebstore#item",
 		ID:          "lcfmdcpihnaincdpgibhlncnekofobkc",
@@ -183,12 +176,6 @@ func TestInsert(t *testing.T) {
 func TestUpdate(t *testing.T) {
 	assert := assert.New(t)
 
-	accessToken := "test_access_token"
-	clientID := "test_client_id"
-	clientSecret := "test_client_secret"
-	refreshToken := "test_refresh_token"
-	appID := "test_app_id"
-
 	updateResponse := chrome.UpdateResponse{
 		Kind:        "test kind",
 		ID:          appID,
@@ -233,12 +220,6 @@ func TestUpdate(t *testing.T) {
 
 func TestPublish(t *testing.T) {
 	assert := assert.New(t)
-
-	accessToken := "test_access_token"
-	clientID := "test_client_id"
-	clientSecret := "test_client_secret"
-	refreshToken := "test_refresh_token"
-	appID := "test_app_id"
 
 	publishResponse := chrome.PublishResponse{
 		Kind:         "test_kind",

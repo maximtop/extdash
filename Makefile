@@ -11,11 +11,11 @@ lint:
 	 golangci-lint run ./...
 
 format:
-	go fmt ./...
+	gofumpt -w .
 
 test:
 	go test ./...
 
 zip:
-	cd tmp/extension; zip -r ../extension.zip ./
+	cd tmp/extension && zip -r ../extension.zip ./
 

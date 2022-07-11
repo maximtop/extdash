@@ -2,8 +2,10 @@ package fileutil
 
 import (
 	"archive/zip"
-	"errors"
+	"fmt"
 	"io"
+
+	"github.com/AdguardTeam/golibs/errors"
 )
 
 const (
@@ -16,13 +18,13 @@ const (
 func readFile(file *zip.File) (result []byte, err error) {
 	reader, err := file.Open()
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("opening file: %w", err)
 	}
-	defer reader.Close()
+	defer func() { err = errors.WithDeferred(err, reader.Close()) }()
 
 	content, err := io.ReadAll(reader)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("reading file: %w", err)
 	}
 
 	return content, err
@@ -32,20 +34,20 @@ func readFile(file *zip.File) (result []byte, err error) {
 func ReadFileFromZip(zipFile, filename string) (result []byte, err error) {
 	reader, err := zip.OpenReader(zipFile)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("opening zip file: %w", err)
 	}
-	defer reader.Close()
+	defer func() { err = errors.WithDeferred(err, reader.Close()) }()
 
 	for _, file := range reader.File {
 		if file.Name == filename {
 			result, err := readFile(file)
 			if err != nil {
-				return nil, err
+				return nil, fmt.Errorf("reading file: %w", err)
 			}
 
 			return result, nil
 		}
 	}
 
-	return result, errors.New("was unable to find file in zip")
+	return result, fmt.Errorf("unable to find file: %s in zip", filename)
 }

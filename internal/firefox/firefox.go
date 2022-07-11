@@ -355,8 +355,9 @@ func (w *ReviewedStatus) UnmarshalJSON(b []byte) error {
 }
 
 // UploadStatus retrieves upload status of the extension.
+//
 // curl "https://addons.mozilla.org/api/v5/addons/@my-addon/versions/1.0/"
-//    -g -H "Authorization: JWT <jwt-token>"
+// 		-g -H "Authorization: JWT <jwt-token>"
 func (s *Store) UploadStatus(c Client, appID, version string) (status *UploadStatus, err error) {
 	log.Debug("getting upload status for appID: %s, version: %s", appID, version)
 

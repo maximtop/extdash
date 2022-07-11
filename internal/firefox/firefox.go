@@ -669,14 +669,11 @@ func (s *Store) AwaitSigning(c Client, appID, version string) (err error) {
 		signedAndReady := uploadStatus.Valid && uploadStatus.Active && bool(uploadStatus.Reviewed) && len(uploadStatus.Files) > 0
 		requiresManualReview := uploadStatus.Valid && !uploadStatus.AutomatedSigning
 
-		if signedAndReady || requiresManualReview {
-			if requiresManualReview {
-				return fmt.Errorf("[AwaitSigning] extension won't be signed automatically, status: %+v", uploadStatus)
-			}
-			if signedAndReady {
-				log.Debug("[AwaitSigning] extension is signed and ready: %s", appID)
-				return nil
-			}
+		if signedAndReady {
+			log.Debug("[AwaitSigning] extension is signed and ready: %s", appID)
+			return nil
+		} else if requiresManualReview {
+			return fmt.Errorf("[AwaitSigning] extension won't be signed automatically, status: %+v", uploadStatus)
 		} else {
 			log.Debug("[AwaitSigning] extension is not processed yet, retry in %s", retryInterval)
 			time.Sleep(retryInterval)

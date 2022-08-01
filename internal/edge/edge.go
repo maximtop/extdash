@@ -40,7 +40,8 @@ func NewClient(clientID, clientSecret, rawAccessTokenURL string) (client Client,
 	}, nil
 }
 
-// AuthorizeResponse represents the response from the authorize endpoint.
+// AuthorizeResponse describes the response received from the Edge Store
+// authorization request.
 type AuthorizeResponse struct {
 	TokenType   string `json:"token_type"`
 	ExpiresIn   int    `json:"expires_in"`

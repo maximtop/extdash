@@ -26,7 +26,7 @@ func main() {
 	}
 	chromeStore, err := chrome.NewStore("https://www.googleapis.com")
 	if err != nil {
-		log.Fatal(err)
+		log.Fatal("failed to initialize Chrome Store: %w", err)
 	}
 
 	firefoxClient := firefox.NewClient(firefox.ClientConfig{
@@ -35,7 +35,7 @@ func main() {
 	})
 	firefoxStore, err := firefox.NewStore("https://addons.mozilla.org/")
 	if err != nil {
-		log.Fatal(err)
+		log.Fatal("failed to initialize Firefox Store: %w", err)
 	}
 
 	edgeClient, err := edge.NewClient(
@@ -44,12 +44,12 @@ func main() {
 		os.Getenv("EDGE_ACCESS_TOKEN_URL"),
 	)
 	if err != nil {
-		log.Fatal(err)
+		log.Fatal("failed to initialize Edge Store Client: %w", err)
 	}
 
 	edgeStore, err := edge.NewStore("https://api.addons.microsoftedge.microsoft.com")
 	if err != nil {
-		log.Fatal(err)
+		log.Fatal("failed to initialize Edge Store: %w", err)
 	}
 
 	app := &cli.App{
@@ -282,6 +282,6 @@ func main() {
 
 	err = app.Run(os.Args)
 	if err != nil {
-		log.Fatal(err)
+		log.Fatal("failed to run app: %w", err)
 	}
 }

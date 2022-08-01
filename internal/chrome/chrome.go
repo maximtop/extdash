@@ -16,7 +16,7 @@ import (
 	"github.com/maximtop/extdash/internal/urlutil"
 )
 
-// Client describes structure of the client.
+// Client describes structure of a Chrome Store API client.
 type Client struct {
 	URL          string
 	ClientID     string
@@ -27,7 +27,8 @@ type Client struct {
 // maxReadLimit limits response size returned from the store.
 const maxReadLimit = 10 * fileutil.MB
 
-// AuthorizeResponse represents response from the store.
+// AuthorizeResponse describes the response received from the Chrome Store
+// authorization request.
 type AuthorizeResponse struct {
 	AccessToken string `json:"access_token"`
 }

@@ -115,12 +115,12 @@ type Manifest struct {
 func parseManifest(zipFilepath string) (result Manifest, err error) {
 	fileContent, err := fileutil.ReadFileFromZip(zipFilepath, "manifest.json")
 	if err != nil {
-		return Manifest{}, fmt.Errorf("can't read manifest.json from zip file %s due to: %w", zipFilepath, err)
+		return Manifest{}, fmt.Errorf("can't read manifest.json from zip file %q due to: %w", zipFilepath, err)
 	}
 
 	err = json.Unmarshal(fileContent, &result)
 	if err != nil {
-		return Manifest{}, fmt.Errorf("can't unmarshal manifest.json %s due to: %w", zipFilepath, err)
+		return Manifest{}, fmt.Errorf("can't unmarshal manifest.json %q due to: %w", zipFilepath, err)
 	}
 
 	return result, nil
@@ -448,7 +448,7 @@ func (s *Store) AwaitValidation(c Client, appID, version string) (err error) {
 //  -F "upload=@tmp/extension.zip" \
 //  "https://addons.mozilla.org/api/v5/addons/"
 func (s *Store) UploadNew(c Client, filePath string) (result []byte, err error) {
-	log.Debug("uploading new extension: %s", filePath)
+	log.Debug("uploading new extension: %q", filePath)
 
 	const apiPath = "api/v5/addons"
 
@@ -458,7 +458,7 @@ func (s *Store) UploadNew(c Client, filePath string) (result []byte, err error) 
 
 	file, err := os.Open(filepath.Clean(filePath))
 	if err != nil {
-		return nil, fmt.Errorf("can't open file: %s, due to: %w", filePath, err)
+		return nil, fmt.Errorf("can't open file: %q, due to: %w", filePath, err)
 	}
 	defer func() { err = errors.WithDeferred(err, file.Close()) }()
 
@@ -510,14 +510,14 @@ func (s *Store) UploadNew(c Client, filePath string) (result []byte, err error) 
 		return nil, fmt.Errorf("got code %d, body: %q", res.StatusCode, respBody)
 	}
 
-	log.Debug("uploaded new extension: %s, response: %s", filePath, respBody)
+	log.Debug("uploaded new extension: %q, response: %s", filePath, respBody)
 
 	return respBody, nil
 }
 
 // Insert uploads extension to the amo for the first time.
 func (s *Store) Insert(c Client, filepath, sourcepath string) (err error) {
-	log.Debug("start uploading new extension: %s, with source: %s", filepath, sourcepath)
+	log.Debug("start uploading new extension: %q, with source: %s", filepath, sourcepath)
 
 	_, err = s.UploadNew(c, filepath)
 	if err != nil {
@@ -526,7 +526,7 @@ func (s *Store) Insert(c Client, filepath, sourcepath string) (err error) {
 
 	manifest, err := parseManifest(filepath)
 	if err != nil {
-		return fmt.Errorf("[Insert] wasn't able to parse manifest: %s due to: %w", filepath, err)
+		return fmt.Errorf("[Insert] wasn't able to parse manifest: %q due to: %w", filepath, err)
 	}
 
 	appID := manifest.Applications.Gecko.ID
@@ -552,13 +552,13 @@ func (s *Store) Insert(c Client, filepath, sourcepath string) (err error) {
 
 // UploadUpdate uploads the extension update.
 func (s *Store) UploadUpdate(c Client, appID, version, filePath string) (result []byte, err error) {
-	log.Debug("start uploading update for extension: %s", filePath)
+	log.Debug("start uploading update for extension: %q", filePath)
 
 	const apiPath = "api/v5/addons"
 
 	file, err := os.Open(filepath.Clean(filePath))
 	if err != nil {
-		return nil, fmt.Errorf("[UploadUpdate] wasn't able to open file: %s, due to: %w", filePath, err)
+		return nil, fmt.Errorf("[UploadUpdate] wasn't able to open file: %q, due to: %w", filePath, err)
 	}
 	defer func() { err = errors.WithDeferred(err, file.Close()) }()
 
@@ -612,7 +612,7 @@ func (s *Store) UploadUpdate(c Client, appID, version, filePath string) (result 
 		return nil, fmt.Errorf("got code %d, body: %q", res.StatusCode, responseBody)
 	}
 
-	log.Debug("Successfully uploaded update for extension: %s, response: %s", filePath, responseBody)
+	log.Debug("Successfully uploaded update for extension: %q, response: %s", filePath, responseBody)
 
 	return responseBody, nil
 }
@@ -624,7 +624,7 @@ func (s *Store) Update(c Client, filepath, sourcepath string) (err error) {
 
 	manifest, err := parseManifest(filepath)
 	if err != nil {
-		return fmt.Errorf("[Update] wasn't able to parse manifest: %s due to: %w", filepath, err)
+		return fmt.Errorf("[Update] wasn't able to parse manifest: %q due to: %w", filepath, err)
 	}
 
 	appID := manifest.Applications.Gecko.ID
@@ -753,11 +753,11 @@ func (s *Store) DownloadSigned(c Client, appID, version string) (err error) {
 // Sign uploads the extension to the store, waits for signing, downloads and saves the signed
 // extension in the directory
 func (s *Store) Sign(c Client, filepath string) (err error) {
-	log.Debug("start signing extension: %s", filepath)
+	log.Debug("start signing extension: %q", filepath)
 
 	manifest, err := parseManifest(filepath)
 	if err != nil {
-		return fmt.Errorf("[Sign] wasn't able to parse manifest: %s, due to: %w", filepath, err)
+		return fmt.Errorf("[Sign] wasn't able to parse manifest: %q, due to: %w", filepath, err)
 	}
 
 	appID := manifest.Applications.Gecko.ID

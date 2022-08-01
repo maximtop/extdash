@@ -35,7 +35,7 @@ func main() {
 		ClientID:     os.Getenv("FIREFOX_CLIENT_ID"),
 		ClientSecret: os.Getenv("FIREFOX_CLIENT_SECRET"),
 	})
-	firefoxStore, err := firefox.NewStore("")
+	firefoxStore, err := firefox.NewStore("https://addons.mozilla.org/")
 	if err != nil {
 		log.Fatalf("failed to initialize Firefox Store: %s", err)
 	}

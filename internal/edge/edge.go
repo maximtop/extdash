@@ -167,7 +167,7 @@ func (s Store) Update(c Client, appID, filepath string, updateOptions UpdateOpti
 	operationID, err := s.UploadUpdate(c, appID, filepath)
 	if err != nil {
 		return nil, fmt.Errorf(
-			"[Update] failed to upload update for appID: %s, with filepath: %s, due to error: %w", appID, filepath, err,
+			"[Update] failed to upload update for appID: %s, with filepath: %q, due to error: %w", appID, filepath, err,
 		)
 	}
 
@@ -211,12 +211,12 @@ func (s Store) UploadUpdate(c Client, appID, filePath string) (result string, er
 
 	file, err := os.Open(filepath.Clean(filePath))
 	if err != nil {
-		return "", fmt.Errorf("can't open file: %s, error: %w", filePath, err)
+		return "", fmt.Errorf("can't open file: %q, error: %w", filePath, err)
 	}
 	defer func() {
 		err := errors.WithDeferred(err, file.Close())
 		if err != nil {
-			log.Debug("[UploadUpdate] failed to close file: %s due to error: %s", filePath, err)
+			log.Debug("[UploadUpdate] failed to close file: %q due to error: %s", filePath, err)
 		}
 	}()
 

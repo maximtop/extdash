@@ -1,3 +1,4 @@
+// Package edge helps user to interact with the Microsoft Edge store.
 package edge
 
 import (
@@ -7,6 +8,7 @@ import (
 	"net/http"
 	"net/url"
 	"os"
+	"path/filepath"
 	"strings"
 	"time"
 
@@ -38,6 +40,7 @@ func NewClient(clientID, clientSecret, rawAccessTokenURL string) (client Client,
 	}, nil
 }
 
+// AuthorizeResponse represents the response from the authorize endpoint.
 type AuthorizeResponse struct {
 	TokenType   string `json:"token_type"`
 	ExpiresIn   int    `json:"expires_in"`
@@ -103,8 +106,11 @@ func NewStore(rawURL string) (store Store, err error) {
 type Status int64
 
 const (
+	// InProgress status is returned when update or publish are in progress yet.
 	InProgress Status = iota
+	// Succeeded status is returned when update or publish were successful.
 	Succeeded
+	// Failed status is returned when update or publish were failed.
 	Failed
 )
 
@@ -122,10 +128,12 @@ func (u Status) String() string {
 	return "unknown"
 }
 
+// StatusError represents the error returned by the edge store.
 type StatusError struct {
 	Message string `json:"message"`
 }
 
+// UploadStatusResponse represents the response from the upload status endpoint.
 type UploadStatusResponse struct {
 	ID              string        `json:"id"`
 	CreatedTime     string        `json:"createdTime"`
@@ -136,6 +144,7 @@ type UploadStatusResponse struct {
 	Errors          []StatusError `json:"errors"`
 }
 
+// UpdateOptions represents the options for the update.
 type UpdateOptions struct {
 	RetryTimeout      time.Duration
 	WaitStatusTimeout time.Duration
@@ -195,18 +204,18 @@ func (s Store) Update(c Client, appID, filepath string, updateOptions UpdateOpti
 }
 
 // UploadUpdate uploads the update to the store.
-func (s Store) UploadUpdate(c Client, appID, filepath string) (result string, err error) {
+func (s Store) UploadUpdate(c Client, appID, filePath string) (result string, err error) {
 	const apiPath = "/v1/products"
 	apiURL := urlutil.JoinURL(s.URL, apiPath, appID, "submissions/draft/package")
 
-	file, err := os.Open(filepath)
+	file, err := os.Open(filepath.Clean(filePath))
 	if err != nil {
-		return "", fmt.Errorf("can't open file: %s, error: %w", filepath, err)
+		return "", fmt.Errorf("can't open file: %s, error: %w", filePath, err)
 	}
 	defer func() {
 		err := errors.WithDeferred(err, file.Close())
 		if err != nil {
-			log.Debug("[UploadUpdate] failed to close file: %s due to error: %s", filepath, err)
+			log.Debug("[UploadUpdate] failed to close file: %s due to error: %s", filePath, err)
 		}
 	}()
 
@@ -320,6 +329,7 @@ func (s Store) PublishExtension(c Client, appID string) (result string, err erro
 	return operationID, nil
 }
 
+// PublishStatusResponse is the response of the PublishStatus API.
 type PublishStatusResponse struct {
 	ID              string        `json:"id"`
 	CreatedTime     string        `json:"createdTime"`

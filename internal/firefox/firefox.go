@@ -1,3 +1,4 @@
+// Package firefox package contains methods for working with AMO store
 package firefox
 
 import (
@@ -10,6 +11,7 @@ import (
 	"net/url"
 	"os"
 	"path"
+	"path/filepath"
 	"strconv"
 	"time"
 
@@ -34,6 +36,7 @@ type Client struct {
 	now          func() int64
 }
 
+// ClientConfig config describes client config structure.
 type ClientConfig struct {
 	ClientID     string
 	ClientSecret string
@@ -100,12 +103,12 @@ func NewStore(rawURL string) (s Store, err error) {
 
 // Manifest describes required fields parsed from the manifest.
 type Manifest struct {
-	Version      string
+	Version      string `json:"version"`
 	Applications struct {
 		Gecko struct {
-			ID string
-		}
-	}
+			ID string `json:"id"`
+		} `json:"gecko"`
+	} `json:"applications"`
 }
 
 // parseManifest reads zip archive, and extracts manifest.json out of it.
@@ -162,18 +165,18 @@ func (s *Store) Status(c Client, appID string) (result []byte, err error) {
 	return body, nil
 }
 
-type Version struct {
+type version struct {
 	ID      int    `json:"id"`
 	Version string `json:"version"`
 }
 
-type VersionResponse struct {
+type versionResponse struct {
 	PageSize  int         `json:"page_size"`
 	PageCount int         `json:"page_count"`
 	Count     int         `json:"count"`
 	Next      interface{} `json:"next"`
 	Previous  interface{} `json:"previous"`
-	Results   []Version   `json:"results"`
+	Results   []version   `json:"results"`
 }
 
 // VersionID retrieves version ID by version number.
@@ -214,7 +217,7 @@ func (s *Store) VersionID(c Client, appID, version string) (result string, err e
 		return "", fmt.Errorf("got code %d, body: %q", res.StatusCode, body)
 	}
 
-	var versions VersionResponse
+	var versions versionResponse
 
 	err = json.Unmarshal(body, &versions)
 	if err != nil {
@@ -248,7 +251,7 @@ func (s *Store) UploadSource(c Client, appID, versionID, sourcePath string) (res
 
 	apiURL := urlutil.JoinURL(s.URL, apiPath, appID, "versions", versionID) + "/"
 
-	file, err := os.Open(sourcePath)
+	file, err := os.Open(filepath.Clean(sourcePath))
 	if err != nil {
 		return nil, fmt.Errorf("opening file %s, error: %w", sourcePath, err)
 	}
@@ -307,12 +310,14 @@ func (s *Store) UploadSource(c Client, appID, versionID, sourcePath string) (res
 	return responseBody, nil
 }
 
+// UploadStatusFiles represents upload status files structure
 type UploadStatusFiles struct {
 	DownloadURL string `json:"download_url"`
 	Hash        string `json:"hash"`
 	Signed      bool   `json:"signed"`
 }
 
+// UploadStatus represents upload status structure
 type UploadStatus struct {
 	GUID             string              `json:"guid"`
 	Active           bool                `json:"active"`
@@ -328,6 +333,7 @@ type UploadStatus struct {
 	Version          string              `json:"version"`
 }
 
+// ReviewedStatus represents reviewed status structure
 type ReviewedStatus bool
 
 // UnmarshalJSON parses ReviewedStatus.
@@ -441,8 +447,8 @@ func (s *Store) AwaitValidation(c Client, appID, version string) (err error) {
 //  -H "Authorization: JWT ${ACCESS_TOKEN}" \
 //  -F "upload=@tmp/extension.zip" \
 //  "https://addons.mozilla.org/api/v5/addons/"
-func (s *Store) UploadNew(c Client, filepath string) (result []byte, err error) {
-	log.Debug("uploading new extension: %s", filepath)
+func (s *Store) UploadNew(c Client, filePath string) (result []byte, err error) {
+	log.Debug("uploading new extension: %s", filePath)
 
 	const apiPath = "api/v5/addons"
 
@@ -450,9 +456,9 @@ func (s *Store) UploadNew(c Client, filepath string) (result []byte, err error) 
 	// in go 1.19 would be possible u.JoinPath("users", "/")
 	apiURL := urlutil.JoinURL(s.URL, apiPath) + "/"
 
-	file, err := os.Open(filepath)
+	file, err := os.Open(filepath.Clean(filePath))
 	if err != nil {
-		return nil, fmt.Errorf("can't open file: %s, due to: %w", filepath, err)
+		return nil, fmt.Errorf("can't open file: %s, due to: %w", filePath, err)
 	}
 	defer func() { err = errors.WithDeferred(err, file.Close()) }()
 
@@ -504,7 +510,7 @@ func (s *Store) UploadNew(c Client, filepath string) (result []byte, err error) 
 		return nil, fmt.Errorf("got code %d, body: %q", res.StatusCode, respBody)
 	}
 
-	log.Debug("uploaded new extension: %s, response: %s", filepath, respBody)
+	log.Debug("uploaded new extension: %s, response: %s", filePath, respBody)
 
 	return respBody, nil
 }
@@ -545,14 +551,14 @@ func (s *Store) Insert(c Client, filepath, sourcepath string) (err error) {
 }
 
 // UploadUpdate uploads the extension update.
-func (s *Store) UploadUpdate(c Client, appID, version, filepath string) (result []byte, err error) {
-	log.Debug("start uploading update for extension: %s", filepath)
+func (s *Store) UploadUpdate(c Client, appID, version, filePath string) (result []byte, err error) {
+	log.Debug("start uploading update for extension: %s", filePath)
 
 	const apiPath = "api/v5/addons"
 
-	file, err := os.Open(filepath)
+	file, err := os.Open(filepath.Clean(filePath))
 	if err != nil {
-		return nil, fmt.Errorf("[UploadUpdate] wasn't able to open file: %s, due to: %w", filepath, err)
+		return nil, fmt.Errorf("[UploadUpdate] wasn't able to open file: %s, due to: %w", filePath, err)
 	}
 	defer func() { err = errors.WithDeferred(err, file.Close()) }()
 
@@ -606,7 +612,7 @@ func (s *Store) UploadUpdate(c Client, appID, version, filepath string) (result 
 		return nil, fmt.Errorf("got code %d, body: %q", res.StatusCode, responseBody)
 	}
 
-	log.Debug("Successfully uploaded update for extension: %s, response: %s", filepath, responseBody)
+	log.Debug("Successfully uploaded update for extension: %s, response: %s", filePath, responseBody)
 
 	return responseBody, nil
 }
@@ -730,7 +736,7 @@ func (s *Store) DownloadSigned(c Client, appID, version string) (err error) {
 	filename := path.Base(parsedURL.Path)
 
 	// save response to file
-	file, err := os.Create(filename)
+	file, err := os.Create(filepath.Clean(filename))
 	if err != nil {
 		return fmt.Errorf("[DownloadSigned] wasn't able to create file: %s due to: %w", filename, err)
 	}

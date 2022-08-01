@@ -1,3 +1,4 @@
+// Package urlutil contains functions for working with URLs.
 package urlutil
 
 import (

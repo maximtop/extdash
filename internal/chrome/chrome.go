@@ -1,3 +1,4 @@
+// Package chrome helps to interact with the Chrome Web Store.
 package chrome
 
 import (
@@ -7,6 +8,7 @@ import (
 	"net/http"
 	"net/url"
 	"os"
+	"path/filepath"
 	"time"
 
 	"github.com/AdguardTeam/golibs/errors"
@@ -25,6 +27,7 @@ type Client struct {
 // maxReadLimit limits response size returned from the store.
 const maxReadLimit = 10 * fileutil.MB
 
+// AuthorizeResponse represents response from the store.
 type AuthorizeResponse struct {
 	AccessToken string `json:"access_token"`
 }
@@ -82,11 +85,11 @@ func NewStore(rawURL string) (s Store, err error) {
 
 // StatusResponse describes status response fields.
 type StatusResponse struct {
-	Kind        string
-	ID          string
-	PublicKey   string
-	UploadState string
-	CrxVersion  string
+	Kind        string `json:"kind"`
+	ID          string `json:"id"`
+	PublicKey   string `json:"publicKey"`
+	UploadState string `json:"uploadState"`
+	CrxVersion  string `json:"crxVersion"`
 }
 
 const requestTimeout = 5 * time.Minute
@@ -138,9 +141,9 @@ func (s *Store) Status(c Client, appID string) (result *StatusResponse, err erro
 
 // InsertResponse describes structure returned on the insert request.
 type InsertResponse struct {
-	Kind        string
-	ID          string
-	UploadState string
+	Kind        string `json:"kind"`
+	ID          string `json:"id"`
+	UploadState string `json:"uploadState"`
 }
 
 // Insert uploads a package to create a new store item.
@@ -153,7 +156,7 @@ func (s *Store) Insert(c Client, filePath string) (result *InsertResponse, err e
 		return nil, fmt.Errorf("getting access token: %w", err)
 	}
 
-	body, err := os.Open(filePath)
+	body, err := os.Open(filepath.Clean(filePath))
 	if err != nil {
 		return nil, fmt.Errorf("opening file: %w", err)
 	}
@@ -209,7 +212,7 @@ func (s *Store) Update(c Client, appID, filePath string) (result *UpdateResponse
 
 	client := &http.Client{Timeout: requestTimeout}
 
-	body, err := os.Open(filePath)
+	body, err := os.Open(filepath.Clean(filePath))
 	if err != nil {
 		return nil, fmt.Errorf("opening file: %w", err)
 	}

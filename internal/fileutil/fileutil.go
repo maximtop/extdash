@@ -1,3 +1,4 @@
+// Package fileutil contains functions for working with files.
 package fileutil
 
 import (
@@ -9,8 +10,10 @@ import (
 )
 
 const (
-	_        = iota
+	_ = iota
+	// KB is a constant for kilobyte.
 	KB int64 = 1 << (10 * iota)
+	// MB is a constant for megabyte.
 	MB
 )
 

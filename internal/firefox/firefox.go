@@ -1,4 +1,4 @@
-// Package firefox package contains methods for working with AMO store
+// Package firefox package contains methods for working with AMO store.
 package firefox
 
 import (

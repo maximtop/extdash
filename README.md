@@ -14,7 +14,7 @@ After getting `CODE`, `CLIENT_ID` and `CLIENT_SECRET`, you'd be able to get `ref
 
 ```bash
 curl "https://accounts.google.com/o/oauth2/token" -d \
-"client_id=$CLIENT_ID&client_secret=$CLIENT_SECRET&code=$CODE&grant_type=authorization_code&redirect_uri=urn:ietf:wg:oauth:2.0:oob"
+"client_id=${CLIENT_ID}&client_secret=${CLIENT_SECRET}&code=${CODE}&grant_type=authorization_code&redirect_uri=urn:ietf:wg:oauth:2.0:oob"
 ```
 
 **Note**: you have to use `refresh_token` instead of `access_token`.

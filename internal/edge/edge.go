@@ -17,7 +17,7 @@ import (
 	"github.com/maximtop/extdash/internal/urlutil"
 )
 
-const requestTimeout = 5 * time.Minute
+const requestTimeout = 30 * time.Second
 
 // Client represent the edge client.
 type Client struct {

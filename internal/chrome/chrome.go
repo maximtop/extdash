@@ -92,7 +92,7 @@ type StatusResponse struct {
 	CrxVersion  string `json:"crxVersion"`
 }
 
-const requestTimeout = 5 * time.Minute
+const requestTimeout = 30 * time.Second
 
 // Status retrieves status of the extension in the store.
 func (s *Store) Status(c Client, appID string) (result *StatusResponse, err error) {

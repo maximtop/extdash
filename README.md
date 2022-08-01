@@ -17,7 +17,7 @@ curl "https://accounts.google.com/o/oauth2/token" -d \
 "client_id=$CLIENT_ID&client_secret=$CLIENT_SECRET&code=$CODE&grant_type=authorization_code&redirect_uri=urn:ietf:wg:oauth:2.0:oob"
 ```
 
-**Note**: you have to use _refresh_token_ instead of _access_token_.
+**Note**: you have to use `refresh_token` instead of `access_token`.
 
 #### Firefox Credentials
 
@@ -31,7 +31,7 @@ here: https://docs.microsoft.com/en-us/microsoft-edge/extensions-chromium/publis
 
 #### Environment variables
 
-Received credentials should be stored in the .env file.
+Received credentials should be stored in the `.env` file.
 
 ```dotenv
 CHROME_CLIENT_ID=<client_id>

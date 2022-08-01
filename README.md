@@ -3,7 +3,35 @@
 ## CLI
 
 ### Usage:
-Before start, you have to get credentials to the stores API and put them in the environment variables.
+
+Before start, you have to get credentials to the stores API.
+
+#### Chrome Credentials
+
+How to get Chrome Store credentials API described here https://developer.chrome.com/docs/webstore/using_webstore_api/
+
+After getting `CODE`, `CLIENT_ID` and `CLIENT_SECRET`, you'd be able to get `refresh_token` via request to this url
+
+```bash
+curl "https://accounts.google.com/o/oauth2/token" -d \
+"client_id=$CLIENT_ID&client_secret=$CLIENT_SECRET&code=$CODE&grant_type=authorization_code&redirect_uri=urn:ietf:wg:oauth:2.0:oob"
+```
+
+**Note**: you have to use _refresh_token_ instead of _access_token_.
+
+#### Firefox Credentials
+
+Getting credentials for Addons Mozilla Org is not difficult. You should have a Firefox account and be logged in. After
+that go to the following link: https://addons.mozilla.org/en-US/developers/addon/api/key/
+
+#### Edge Credentials
+
+Description about getting credentials for Microsoft Edge Addons Store can be found
+here: https://docs.microsoft.com/en-us/microsoft-edge/extensions-chromium/publish/api/using-addons-api#before-you-begin
+
+#### Environment variables
+
+Received credentials should be stored in the .env file.
 
 ```dotenv
 CHROME_CLIENT_ID=<client_id>
@@ -25,6 +53,7 @@ extdash [global options] command [command options] [arguments...]
 ```
 
 #### Commands:
+
 ```
 - status   returns extension info
 - insert   uploads extension to the store
@@ -36,26 +65,39 @@ extdash [global options] command [command options] [arguments...]
 
 #### Examples:
 
+##### Status:
+
 To get status of the extension in the Chrome store:
+
 ```sh
-./extdash status chrome -app <app_id>
+./extdash status chrome --app bjefoaoblohljkbmkfjcpkgfamdadogp
+```
+
+To get status of the extension in the Firefox store:
+
+```sh
+./extdash status firefox --app sample@example.org
 ```
 
 To upload new extension to the Mozilla store:
+
 ```sh
 ./extdash insert firefox -f /path/to/file -s /path/to/source
 ```
 
 ## Planned features
+
 - [ ] create CLI to deploy to the stores
-  - [x] chrome
-  - [x] mozilla
-  - [x] edge
-  - [ ] opera
-  - [ ] static
+    - [x] chrome
+    - [x] mozilla
+    - [x] edge
+    - [ ] opera
+    - [ ] static
+    - [ ] TODO add description for every possible command
 - [ ] get publish status for extensions from storage (published, draft, on review)
-  - [ ] subscribe on status change via email or slack 
+    - [ ] subscribe on status change via email or slack
 - [ ] collect stats from storage
 
 ## Planned improvements
+
 - [ ] setup sentry to collect errors

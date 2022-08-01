@@ -18,6 +18,7 @@ func main() {
 		log.Fatal("Error loading .env file")
 	}
 
+	// TODO validate env variables
 	chromeClient := chrome.Client{
 		URL:          "https://accounts.google.com/o/oauth2/token",
 		ClientID:     os.Getenv("CHROME_CLIENT_ID"),
@@ -29,6 +30,7 @@ func main() {
 		log.Fatal("failed to initialize Chrome Store: %w", err)
 	}
 
+	// TODO validate env variables
 	firefoxClient := firefox.NewClient(firefox.ClientConfig{
 		ClientID:     os.Getenv("FIREFOX_CLIENT_ID"),
 		ClientSecret: os.Getenv("FIREFOX_CLIENT_SECRET"),
@@ -38,6 +40,7 @@ func main() {
 		log.Fatal("failed to initialize Firefox Store: %w", err)
 	}
 
+	// TODO validate env variables
 	edgeClient, err := edge.NewClient(
 		os.Getenv("EDGE_CLIENT_ID"),
 		os.Getenv("EDGE_CLIENT_SECRET"),
@@ -77,7 +80,7 @@ func main() {
 							return err
 						}
 
-						fmt.Println(status)
+						fmt.Printf("%s\n", status)
 
 						return nil
 					},
@@ -88,13 +91,12 @@ func main() {
 					Usage: "Chrome Store",
 					Action: func(c *cli.Context) error {
 						appID := c.String("app")
-
 						status, err := chromeStore.Status(chromeClient, appID)
 						if err != nil {
 							return err
 						}
 
-						fmt.Println(status)
+						fmt.Printf("%s\n", status)
 
 						return nil
 					},

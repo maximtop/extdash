@@ -5,6 +5,7 @@ import (
 	"log"
 	"os"
 
+	"github.com/caarlos0/env/v6"
 	"github.com/joho/godotenv"
 	"github.com/maximtop/extdash/internal/chrome"
 	"github.com/maximtop/extdash/internal/edge"
@@ -12,48 +13,92 @@ import (
 	"github.com/urfave/cli/v2"
 )
 
-func main() {
-	err := godotenv.Load()
-	if err != nil {
-		log.Fatal("Error loading .env file")
+func getChromeStore() (*chrome.Store, error) {
+	type config struct {
+		ClientID     string `env:"CHROME_CLIENT_ID,notEmpty"`
+		ClientSecret string `env:"CHROME_CLIENT_SECRET,notEmpty"`
+		RefreshToken string `env:"CHROME_REFRESH_TOKEN,notEmpty"`
 	}
 
-	// TODO validate env variables
+	cfg := config{}
+	if err := env.Parse(&cfg); err != nil {
+		return nil, fmt.Errorf("failed to parse environment variables: %s", err)
+	}
+
+	fmt.Printf("%+v\n", cfg)
+
 	chromeClient := chrome.Client{
 		URL:          "https://accounts.google.com/o/oauth2/token",
-		ClientID:     os.Getenv("CHROME_CLIENT_ID"),
-		ClientSecret: os.Getenv("CHROME_CLIENT_SECRET"),
-		RefreshToken: os.Getenv("CHROME_REFRESH_TOKEN"),
-	}
-	chromeStore, err := chrome.NewStore("https://www.googleapis.com")
-	if err != nil {
-		log.Fatalf("failed to initialize Chrome Store: %s", err)
+		ClientID:     cfg.ClientID,
+		ClientSecret: cfg.ClientSecret,
+		RefreshToken: cfg.RefreshToken,
 	}
 
-	// TODO validate env variables
-	firefoxClient := firefox.NewClient(firefox.ClientConfig{
-		ClientID:     os.Getenv("FIREFOX_CLIENT_ID"),
-		ClientSecret: os.Getenv("FIREFOX_CLIENT_SECRET"),
+	chromeStore, err := chrome.NewStore(&chromeClient, "https://www.googleapis.com")
+	if err != nil {
+		return nil, fmt.Errorf("failed to initialize Chrome Store: %s", err)
+	}
+
+	return &chromeStore, nil
+}
+
+func getFirefoxStore() (*firefox.Store, error) {
+	type config struct {
+		ClientID     string `env:"FIREFOX_CLIENT_ID,notEmpty"`
+		ClientSecret string `env:"FIREFOX_CLIENT_SECRET,notEmpty"`
+	}
+
+	cfg := config{}
+	if err := env.Parse(&cfg); err != nil {
+		return nil, fmt.Errorf("failed to parse environment variables: %s", err)
+	}
+
+	client := firefox.NewClient(firefox.ClientConfig{
+		ClientID:     cfg.ClientID,
+		ClientSecret: cfg.ClientSecret,
 	})
-	firefoxStore, err := firefox.NewStore("https://addons.mozilla.org/")
+
+	store, err := firefox.NewStore(&client, "https://addons.mozilla.org/")
 	if err != nil {
-		log.Fatalf("failed to initialize Firefox Store: %s", err)
+		return nil, fmt.Errorf("failed to initialize Firefox Store: %s", err)
 	}
 
-	// TODO validate env variables
-	edgeClient, err := edge.NewClient(
-		os.Getenv("EDGE_CLIENT_ID"),
-		os.Getenv("EDGE_CLIENT_SECRET"),
-		os.Getenv("EDGE_ACCESS_TOKEN_URL"),
+	return &store, nil
+}
+
+func getEdgeStore() (*edge.Store, error) {
+	type config struct {
+		ClientID     string `env:"EDGE_CLIENT_ID,notEmpty"`
+		ClientSecret string `env:"EDGE_CLIENT_SECRET,notEmpty"`
+		AccessToken  string `env:"EDGE_ACCESS_TOKEN,notEmpty"`
+	}
+
+	cfg := config{}
+	if err := env.Parse(&cfg); err != nil {
+		return nil, fmt.Errorf("failed to parse environment variables: %s", err)
+	}
+
+	client, err := edge.NewClient(
+		cfg.ClientID,
+		cfg.ClientSecret,
+		cfg.AccessToken,
 	)
 	if err != nil {
-		log.Fatalf("failed to initialize Edge Store Client: %s", err)
+		return nil, fmt.Errorf("failed to initialize Edge Store Client: %s", err)
 	}
 
-	edgeStore, err := edge.NewStore("https://api.addons.microsoftedge.microsoft.com")
+	edgeStore, err := edge.NewStore(&client, "https://api.addons.microsoftedge.microsoft.com")
 	if err != nil {
-		log.Fatalf("failed to initialize Edge Store: %s", err)
+		return nil, fmt.Errorf("failed to initialize Edge Store: %s", err)
 	}
+
+	return &edgeStore, nil
+}
+
+func main() {
+	// we don't care if method fails on reading .env file, we will try to read config from environment
+	// variables later
+	_ = godotenv.Load()
 
 	app := &cli.App{
 		Name:  "extdash",
@@ -73,9 +118,14 @@ func main() {
 					Name:  "firefox",
 					Usage: "Firefox Store",
 					Action: func(c *cli.Context) error {
+						store, err := getFirefoxStore()
+						if err != nil {
+							return err
+						}
+
 						appID := c.String("app")
 
-						status, err := firefoxStore.Status(firefoxClient, appID)
+						status, err := store.Status(appID)
 						if err != nil {
 							return err
 						}
@@ -90,8 +140,13 @@ func main() {
 					Name:  "chrome",
 					Usage: "Chrome Store",
 					Action: func(c *cli.Context) error {
+						store, err := getChromeStore()
+						if err != nil {
+							return err
+						}
+
 						appID := c.String("app")
-						status, err := chromeStore.Status(chromeClient, appID)
+						status, err := store.Status(appID)
 						if err != nil {
 							return err
 						}
@@ -113,9 +168,14 @@ func main() {
 					Usage: "inserts new extension to the chrome store",
 					Flags: []cli.Flag{fileFlag},
 					Action: func(c *cli.Context) error {
+						store, err := getChromeStore()
+						if err != nil {
+							return err
+						}
+
 						filepath := c.String("file")
 
-						result, err := chromeStore.Insert(chromeClient, filepath)
+						result, err := store.Insert(filepath)
 						if err != nil {
 							return err
 						}
@@ -133,10 +193,15 @@ func main() {
 						sourceFlag,
 					},
 					Action: func(c *cli.Context) error {
+						store, err := getFirefoxStore()
+						if err != nil {
+							return err
+						}
+
 						filepath := c.String("file")
 						sourcepath := c.String("source")
 
-						err := firefoxStore.Insert(firefoxClient, filepath, sourcepath)
+						err = store.Insert(filepath, sourcepath)
 						if err != nil {
 							return err
 						}
@@ -158,10 +223,15 @@ func main() {
 						fileFlag,
 					},
 					Action: func(c *cli.Context) error {
+						store, err := getChromeStore()
+						if err != nil {
+							return err
+						}
+
 						filepath := c.String("file")
 						appID := c.String("app")
 
-						result, err := chromeStore.Update(chromeClient, appID, filepath)
+						result, err := store.Update(appID, filepath)
 						if err != nil {
 							return err
 						}
@@ -179,10 +249,15 @@ func main() {
 						sourceFlag,
 					},
 					Action: func(c *cli.Context) error {
+						store, err := getFirefoxStore()
+						if err != nil {
+							return err
+						}
+
 						filepath := c.String("file")
 						sourcepath := c.String("source")
 
-						err := firefoxStore.Update(firefoxClient, filepath, sourcepath)
+						err = store.Update(filepath, sourcepath)
 						if err != nil {
 							return err
 						}
@@ -198,10 +273,15 @@ func main() {
 						appFlag,
 					},
 					Action: func(c *cli.Context) error {
+						store, err := getEdgeStore()
+						if err != nil {
+							return err
+						}
+
 						filepath := c.String("file")
 						appID := c.String("app")
 
-						result, err := edgeStore.Update(edgeClient, appID, filepath, edge.UpdateOptions{})
+						result, err := store.Update(appID, filepath, edge.UpdateOptions{})
 						if err != nil {
 							return err
 						}
@@ -224,9 +304,14 @@ func main() {
 						appFlag,
 					},
 					Action: func(c *cli.Context) error {
+						store, err := getChromeStore()
+						if err != nil {
+							return err
+						}
+
 						appID := c.String("app")
 
-						result, err := chromeStore.Publish(chromeClient, appID)
+						result, err := store.Publish(appID)
 						if err != nil {
 							return err
 						}
@@ -243,9 +328,14 @@ func main() {
 						appFlag,
 					},
 					Action: func(c *cli.Context) error {
+						store, err := getEdgeStore()
+						if err != nil {
+							return err
+						}
+
 						appID := c.String("app")
 
-						result, err := edgeStore.Publish(edgeClient, appID)
+						result, err := store.Publish(appID)
 						if err != nil {
 							return err
 						}
@@ -268,9 +358,14 @@ func main() {
 						fileFlag,
 					},
 					Action: func(c *cli.Context) error {
+						store, err := getFirefoxStore()
+						if err != nil {
+							return err
+						}
+
 						filepath := c.String("file")
 
-						err := firefoxStore.Sign(firefoxClient, filepath)
+						err = store.Sign(filepath)
 						if err != nil {
 							return err
 						}
@@ -282,7 +377,7 @@ func main() {
 		},
 	}
 
-	err = app.Run(os.Args)
+	err := app.Run(os.Args)
 	if err != nil {
 		log.Fatalf("failed to run app: %s", err)
 	}

@@ -114,13 +114,17 @@ func TestStatus(t *testing.T) {
 	}))
 	defer storeServer.Close()
 
-	store, err := chrome.NewStore(storeServer.URL)
+	store, err := chrome.NewStore(&client, storeServer.URL)
 	require.NoError(t, err)
 
-	actualStatus, err := store.Status(client, appID)
+	actualStatusBytes, err := store.Status(appID)
 	require.NoError(t, err)
 
-	assert.Equal(status, *actualStatus)
+	var actualStatus chrome.StatusResponse
+	err = json.Unmarshal(actualStatusBytes, &actualStatus)
+	require.NoError(t, err)
+
+	assert.Equal(status, actualStatus)
 }
 
 func TestInsert(t *testing.T) {
@@ -164,10 +168,10 @@ func TestInsert(t *testing.T) {
 	}))
 	defer storeServer.Close()
 
-	store, err := chrome.NewStore(storeServer.URL)
+	store, err := chrome.NewStore(&client, storeServer.URL)
 	require.NoError(t, err)
 
-	result, err := store.Insert(client, "./testdata/test.txt")
+	result, err := store.Insert("./testdata/test.txt")
 	require.NoError(t, err)
 
 	assert.Equal(insertResponse, *result)
@@ -210,10 +214,10 @@ func TestUpdate(t *testing.T) {
 	}))
 	defer storeServer.Close()
 
-	store, err := chrome.NewStore(storeServer.URL)
+	store, err := chrome.NewStore(&client, storeServer.URL)
 	require.NoError(t, err)
 
-	result, err := store.Update(client, appID, "testdata/test.txt")
+	result, err := store.Update(appID, "testdata/test.txt")
 	require.NoError(t, err)
 	assert.Equal(updateResponse, *result)
 }
@@ -252,10 +256,10 @@ func TestPublish(t *testing.T) {
 	}))
 	defer storeServer.Close()
 
-	store, err := chrome.NewStore(storeServer.URL)
+	store, err := chrome.NewStore(&client, storeServer.URL)
 	require.NoError(t, err)
 
-	result, err := store.Publish(client, appID)
+	result, err := store.Publish(appID)
 	require.NoError(t, err)
 	assert.Equal(publishResponse, *result)
 }

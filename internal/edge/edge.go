@@ -88,18 +88,20 @@ func (c *Client) Authorize() (accessToken string, err error) {
 
 // Store represents the edge store instance
 type Store struct {
-	URL *url.URL
+	client *Client
+	URL    *url.URL
 }
 
 // NewStore creates a new edge Store instance.
-func NewStore(rawURL string) (store Store, err error) {
+func NewStore(client *Client, rawURL string) (store Store, err error) {
 	URL, err := url.Parse(rawURL)
 	if err != nil {
 		return Store{}, fmt.Errorf("can't parse URL: %s, error: %w", rawURL, err)
 	}
 
 	return Store{
-		URL: URL,
+		client: client,
+		URL:    URL,
 	}, nil
 }
 
@@ -152,7 +154,7 @@ type UpdateOptions struct {
 }
 
 // Update uploads the update to the store and waits for the update to be processed.
-func (s Store) Update(c Client, appID, filepath string, updateOptions UpdateOptions) (result *UploadStatusResponse, err error) {
+func (s Store) Update(appID, filepath string, updateOptions UpdateOptions) (result *UploadStatusResponse, err error) {
 	const defaultRetryTimeout = 5 * time.Second
 	const defaultWaitStatusTimeout = 1 * time.Minute
 
@@ -164,7 +166,7 @@ func (s Store) Update(c Client, appID, filepath string, updateOptions UpdateOpti
 		updateOptions.WaitStatusTimeout = defaultWaitStatusTimeout
 	}
 
-	operationID, err := s.UploadUpdate(c, appID, filepath)
+	operationID, err := s.UploadUpdate(appID, filepath)
 	if err != nil {
 		return nil, fmt.Errorf(
 			"[Update] failed to upload update for appID: %s, with filepath: %q, due to error: %w", appID, filepath, err,
@@ -180,7 +182,7 @@ func (s Store) Update(c Client, appID, filepath string, updateOptions UpdateOpti
 
 		log.Debug("getting upload status...")
 
-		status, err := s.UploadStatus(c, appID, operationID)
+		status, err := s.UploadStatus(appID, operationID)
 		if err != nil {
 			return nil, fmt.Errorf(
 				"[Update] failed to get upload status for appID: %s, with operationID: %s, due to error: %w", appID, operationID, err,
@@ -205,7 +207,7 @@ func (s Store) Update(c Client, appID, filepath string, updateOptions UpdateOpti
 }
 
 // UploadUpdate uploads the update to the store.
-func (s Store) UploadUpdate(c Client, appID, filePath string) (result string, err error) {
+func (s Store) UploadUpdate(appID, filePath string) (result string, err error) {
 	const apiPath = "/v1/products"
 	apiURL := urlutil.JoinURL(s.URL, apiPath, appID, "submissions/draft/package")
 
@@ -225,7 +227,7 @@ func (s Store) UploadUpdate(c Client, appID, filePath string) (result string, er
 		return "", fmt.Errorf("creating request: %w", err)
 	}
 
-	accessToken, err := c.Authorize()
+	accessToken, err := s.client.Authorize()
 	if err != nil {
 		return "", fmt.Errorf("authorizing: %w", err)
 	}
@@ -254,7 +256,7 @@ func (s Store) UploadUpdate(c Client, appID, filePath string) (result string, er
 }
 
 // UploadStatus returns the status of the upload.
-func (s Store) UploadStatus(c Client, appID, operationID string) (response *UploadStatusResponse, err error) {
+func (s Store) UploadStatus(appID, operationID string) (response *UploadStatusResponse, err error) {
 	apiPath := "v1/products"
 	apiURL := urlutil.JoinURL(s.URL, apiPath, appID, "submissions/draft/package/operations", operationID)
 
@@ -263,7 +265,7 @@ func (s Store) UploadStatus(c Client, appID, operationID string) (response *Uplo
 		return nil, fmt.Errorf("creating request: %w", err)
 	}
 
-	accessToken, err := c.Authorize()
+	accessToken, err := s.client.Authorize()
 	if err != nil {
 		return nil, fmt.Errorf("authorizing: %w", err)
 	}
@@ -293,7 +295,7 @@ func (s Store) UploadStatus(c Client, appID, operationID string) (response *Uplo
 }
 
 // PublishExtension publishes the extension to the store and returns operationID.
-func (s Store) PublishExtension(c Client, appID string) (result string, err error) {
+func (s Store) PublishExtension(appID string) (result string, err error) {
 	apiPath := "/v1/products/"
 	apiURL := urlutil.JoinURL(s.URL, apiPath, appID, "submissions")
 
@@ -303,7 +305,7 @@ func (s Store) PublishExtension(c Client, appID string) (result string, err erro
 		return "", fmt.Errorf("creating request: %w", err)
 	}
 
-	accessToken, err := c.Authorize()
+	accessToken, err := s.client.Authorize()
 	if err != nil {
 		return "", fmt.Errorf("authorizing: %w", err)
 	}
@@ -342,11 +344,11 @@ type PublishStatusResponse struct {
 }
 
 // PublishStatus returns the status of the extension publish.
-func (s Store) PublishStatus(c Client, appID, operationID string) (response *PublishStatusResponse, err error) {
+func (s Store) PublishStatus(appID, operationID string) (response *PublishStatusResponse, err error) {
 	apiPath := "v1/products/"
 	apiURL := urlutil.JoinURL(s.URL, apiPath, appID, "submissions/operations", operationID)
 
-	accessToken, err := c.Authorize()
+	accessToken, err := s.client.Authorize()
 	if err != nil {
 		return nil, fmt.Errorf("authorizing: %w", err)
 	}
@@ -388,11 +390,11 @@ func (s Store) PublishStatus(c Client, appID, operationID string) (response *Pub
 }
 
 // Publish publishes the extension to the store.
-func (s Store) Publish(c Client, appID string) (response *PublishStatusResponse, err error) {
-	operationID, err := s.PublishExtension(c, appID)
+func (s Store) Publish(appID string) (response *PublishStatusResponse, err error) {
+	operationID, err := s.PublishExtension(appID)
 	if err != nil {
 		return nil, fmt.Errorf("publishing extension with appID: %s, error: %w", appID, err)
 	}
 
-	return s.PublishStatus(c, appID, operationID)
+	return s.PublishStatus(appID, operationID)
 }

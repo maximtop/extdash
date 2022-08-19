@@ -102,10 +102,10 @@ func TestUploadUpdate(t *testing.T) {
 	}))
 	defer storeServer.Close()
 
-	store, err := edge.NewStore(storeServer.URL)
+	store, err := edge.NewStore(&client, storeServer.URL)
 	require.NoError(t, err)
 
-	actualUpdateResponse, err := store.UploadUpdate(client, appID, "./testdata/test.txt")
+	actualUpdateResponse, err := store.UploadUpdate(appID, "./testdata/test.txt")
 	require.NoError(t, err)
 
 	assert.Equal(operationID, actualUpdateResponse)
@@ -142,10 +142,10 @@ func TestUploadStatus(t *testing.T) {
 	}))
 	defer storeServer.Close()
 
-	store, err := edge.NewStore(storeServer.URL)
+	store, err := edge.NewStore(&client, storeServer.URL)
 	require.NoError(t, err)
 
-	uploadStatus, err := store.UploadStatus(client, appID, operationID)
+	uploadStatus, err := store.UploadStatus(appID, operationID)
 	require.NoError(t, err)
 
 	assert.Equal(response, *uploadStatus)
@@ -209,11 +209,10 @@ func TestUpdate(t *testing.T) {
 		}))
 		defer storeServer.Close()
 
-		store, err := edge.NewStore(storeServer.URL)
+		store, err := edge.NewStore(&client, storeServer.URL)
 		require.NoError(t, err)
 
 		response, err := store.Update(
-			client,
 			appID,
 			filepath,
 			edge.UpdateOptions{
@@ -262,10 +261,10 @@ func TestUpdate(t *testing.T) {
 		}))
 		defer storeServer.Close()
 
-		store, err := edge.NewStore(storeServer.URL)
+		store, err := edge.NewStore(&client, storeServer.URL)
 		require.NoError(t, err)
 
-		_, err = store.Update(client, appID, filepath, updateOptions)
+		_, err = store.Update(appID, filepath, updateOptions)
 		assert.ErrorContains(t, err, "update failed due to timeout")
 	})
 }
@@ -289,10 +288,10 @@ func TestPublishExtension(t *testing.T) {
 	}))
 	defer storeServer.Close()
 
-	store, err := edge.NewStore(storeServer.URL)
+	store, err := edge.NewStore(&client, storeServer.URL)
 	require.NoError(t, err)
 
-	response, err := store.PublishExtension(client, appID)
+	response, err := store.PublishExtension(appID)
 	require.NoError(t, err)
 
 	assert.Equal(t, operationID, response)
@@ -328,10 +327,10 @@ func TestPublishStatus(t *testing.T) {
 	}))
 	defer storeServer.Close()
 
-	store, err := edge.NewStore(storeServer.URL)
+	store, err := edge.NewStore(&client, storeServer.URL)
 	require.NoError(t, err)
 
-	response, err := store.PublishStatus(client, appID, operationID)
+	response, err := store.PublishStatus(appID, operationID)
 	require.NoError(t, err)
 
 	assert.Equal(t, statusResponse, *response)

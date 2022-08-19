@@ -71,17 +71,18 @@ func (c *Client) Authorize() (accessToken string, err error) {
 
 // Store describes structure of the store.
 type Store struct {
-	URL *url.URL
+	client *Client
+	URL    *url.URL
 }
 
 // NewStore parses url and creates new store instance.
-func NewStore(rawURL string) (s Store, err error) {
+func NewStore(client *Client, rawURL string) (s Store, err error) {
 	URL, err := url.Parse(rawURL)
 	if err != nil {
 		return Store{}, fmt.Errorf("error parsing url: %s due to: %w", rawURL, err)
 	}
 
-	return Store{URL: URL}, nil
+	return Store{client: client, URL: URL}, nil
 }
 
 // StatusResponse describes status response fields.
@@ -96,11 +97,11 @@ type StatusResponse struct {
 const requestTimeout = 30 * time.Second
 
 // Status retrieves status of the extension in the store.
-func (s *Store) Status(c Client, appID string) (result []byte, err error) {
+func (s *Store) Status(appID string) (result []byte, err error) {
 	const apiPath = "chromewebstore/v1.1/items"
 	apiURL := urlutil.JoinURL(s.URL, apiPath, appID)
 
-	accessToken, err := c.Authorize()
+	accessToken, err := s.client.Authorize()
 	if err != nil {
 		return nil, fmt.Errorf("getting access token: %w", err)
 	}
@@ -143,11 +144,11 @@ type InsertResponse struct {
 }
 
 // Insert uploads a package to create a new store item.
-func (s *Store) Insert(c Client, filePath string) (result *InsertResponse, err error) {
+func (s *Store) Insert(filePath string) (result *InsertResponse, err error) {
 	const apiPath = "upload/chromewebstore/v1.1/items"
 	apiURL := urlutil.JoinURL(s.URL, apiPath)
 
-	accessToken, err := c.Authorize()
+	accessToken, err := s.client.Authorize()
 	if err != nil {
 		return nil, fmt.Errorf("getting access token: %w", err)
 	}
@@ -197,11 +198,11 @@ type UpdateResponse struct {
 }
 
 // Update uploads new version of the package to the store.
-func (s *Store) Update(c Client, appID, filePath string) (result *UpdateResponse, err error) {
+func (s *Store) Update(appID, filePath string) (result *UpdateResponse, err error) {
 	const apiPath = "upload/chromewebstore/v1.1/items/"
 	apiURL := urlutil.JoinURL(s.URL, apiPath, appID)
 
-	accessToken, err := c.Authorize()
+	accessToken, err := s.client.Authorize()
 	if err != nil {
 		return nil, fmt.Errorf("getting access token: %w", err)
 	}
@@ -252,11 +253,11 @@ type PublishResponse struct {
 }
 
 // Publish publishes app to the store.
-func (s *Store) Publish(c Client, appID string) (result *PublishResponse, err error) {
+func (s *Store) Publish(appID string) (result *PublishResponse, err error) {
 	const apiPath = "chromewebstore/v1.1/items"
 	apiURL := urlutil.JoinURL(s.URL, apiPath, appID, "publish")
 
-	accessToken, err := c.Authorize()
+	accessToken, err := s.client.Authorize()
 	if err != nil {
 		return nil, fmt.Errorf("getting access token: %w", err)
 	}

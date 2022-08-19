@@ -88,17 +88,21 @@ func (c Client) GenAuthHeader() (result string, err error) {
 
 // Store type describes store structure.
 type Store struct {
-	URL *url.URL
+	client *Client
+	URL    *url.URL
 }
 
 // NewStore parses rawUrl and creates instance of the Store.
-func NewStore(rawURL string) (s Store, err error) {
+func NewStore(client *Client, rawURL string) (s Store, err error) {
 	URL, err := url.Parse(rawURL)
 	if err != nil {
 		return Store{}, fmt.Errorf("failed parse url %s due to: %w", rawURL, err)
 	}
 
-	return Store{URL: URL}, nil
+	return Store{
+		client: client,
+		URL:    URL,
+	}, nil
 }
 
 // Manifest describes required fields parsed from the manifest.
@@ -127,7 +131,7 @@ func parseManifest(zipFilepath string) (result Manifest, err error) {
 }
 
 // Status returns status of the extension by appID.
-func (s *Store) Status(c Client, appID string) (result []byte, err error) {
+func (s *Store) Status(appID string) (result []byte, err error) {
 	apiPath := "api/v5/addons/addon/"
 
 	apiURL := urlutil.JoinURL(s.URL, apiPath, appID)
@@ -137,7 +141,7 @@ func (s *Store) Status(c Client, appID string) (result []byte, err error) {
 		return nil, fmt.Errorf("creating request: %w", err)
 	}
 
-	authHeader, err := c.GenAuthHeader()
+	authHeader, err := s.client.GenAuthHeader()
 	if err != nil {
 		return nil, fmt.Errorf("generating auth header: %w", err)
 	}
@@ -180,7 +184,7 @@ type versionResponse struct {
 }
 
 // VersionID retrieves version ID by version number.
-func (s *Store) VersionID(c Client, appID, version string) (result string, err error) {
+func (s *Store) VersionID(appID, version string) (result string, err error) {
 	log.Debug("getting version ID for appID: %s, version: %s", appID, version)
 
 	const apiPath = "api/v5/addons/addon/"
@@ -194,7 +198,7 @@ func (s *Store) VersionID(c Client, appID, version string) (result string, err e
 		return "", fmt.Errorf("creating request: %w", err)
 	}
 
-	authHeader, err := c.GenAuthHeader()
+	authHeader, err := s.client.GenAuthHeader()
 	if err != nil {
 		return "", fmt.Errorf("generating auth header: %w", err)
 	}
@@ -244,7 +248,7 @@ func (s *Store) VersionID(c Client, appID, version string) (result string, err e
 
 // UploadSource uploads source code of the extension to the store.
 // Source can be uploaded only after the extension is validated.
-func (s *Store) UploadSource(c Client, appID, versionID, sourcePath string) (result []byte, err error) {
+func (s *Store) UploadSource(appID, versionID, sourcePath string) (result []byte, err error) {
 	log.Debug("uploading source for appID: %s, versionID: %s", appID, versionID)
 
 	const apiPath = "api/v5/addons/addon/"
@@ -282,7 +286,7 @@ func (s *Store) UploadSource(c Client, appID, versionID, sourcePath string) (res
 
 	req.Header.Set("Content-Type", writer.FormDataContentType())
 
-	authHeader, err := c.GenAuthHeader()
+	authHeader, err := s.client.GenAuthHeader()
 	if err != nil {
 		return nil, fmt.Errorf("generating header: %w", err)
 	}
@@ -364,7 +368,7 @@ func (w *ReviewedStatus) UnmarshalJSON(b []byte) error {
 //
 // curl "https://addons.mozilla.org/api/v5/addons/@my-addon/versions/1.0/"
 // 		-g -H "Authorization: JWT <jwt-token>"
-func (s *Store) UploadStatus(c Client, appID, version string) (status *UploadStatus, err error) {
+func (s *Store) UploadStatus(appID, version string) (status *UploadStatus, err error) {
 	log.Debug("getting upload status for appID: %s, version: %s", appID, version)
 
 	const apiPath = "api/v5/addons"
@@ -375,7 +379,7 @@ func (s *Store) UploadStatus(c Client, appID, version string) (status *UploadSta
 		return nil, fmt.Errorf("creating request: %w", err)
 	}
 
-	authHeader, err := c.GenAuthHeader()
+	authHeader, err := s.client.GenAuthHeader()
 	if err != nil {
 		return nil, fmt.Errorf("generating header: %w", err)
 	}
@@ -412,7 +416,7 @@ func (s *Store) UploadStatus(c Client, appID, version string) (status *UploadSta
 }
 
 // AwaitValidation awaits validation of the extension.
-func (s *Store) AwaitValidation(c Client, appID, version string) (err error) {
+func (s *Store) AwaitValidation(appID, version string) (err error) {
 	// TODO(maximtop): move constants to config
 	const retryInterval = time.Second
 	const maxAwaitTime = time.Minute * 20
@@ -424,7 +428,7 @@ func (s *Store) AwaitValidation(c Client, appID, version string) (err error) {
 			return fmt.Errorf("await validation timeout")
 		}
 
-		uploadStatus, err := s.UploadStatus(c, appID, version)
+		uploadStatus, err := s.UploadStatus(appID, version)
 		if err != nil {
 			return fmt.Errorf("getting upload status: %w", err)
 		}
@@ -447,7 +451,7 @@ func (s *Store) AwaitValidation(c Client, appID, version string) (err error) {
 //  -H "Authorization: JWT ${ACCESS_TOKEN}" \
 //  -F "upload=@tmp/extension.zip" \
 //  "https://addons.mozilla.org/api/v5/addons/"
-func (s *Store) UploadNew(c Client, filePath string) (result []byte, err error) {
+func (s *Store) UploadNew(filePath string) (result []byte, err error) {
 	log.Debug("uploading new extension: %q", filePath)
 
 	const apiPath = "api/v5/addons"
@@ -485,7 +489,7 @@ func (s *Store) UploadNew(c Client, filePath string) (result []byte, err error) 
 		return nil, fmt.Errorf("[UploadNew] wasn't able to create request due to: %w", err)
 	}
 
-	authHeader, err := c.GenAuthHeader()
+	authHeader, err := s.client.GenAuthHeader()
 	if err != nil {
 		return nil, fmt.Errorf("[UploadNew] wasn't able to generate auth header due to: %w", err)
 	}
@@ -516,10 +520,10 @@ func (s *Store) UploadNew(c Client, filePath string) (result []byte, err error) 
 }
 
 // Insert uploads extension to the amo for the first time.
-func (s *Store) Insert(c Client, filepath, sourcepath string) (err error) {
+func (s *Store) Insert(filepath, sourcepath string) (err error) {
 	log.Debug("start uploading new extension: %q, with source: %s", filepath, sourcepath)
 
-	_, err = s.UploadNew(c, filepath)
+	_, err = s.UploadNew(filepath)
 	if err != nil {
 		return fmt.Errorf("[Insert] wasn't able to upload new extension due to: %w", err)
 	}
@@ -532,17 +536,17 @@ func (s *Store) Insert(c Client, filepath, sourcepath string) (err error) {
 	appID := manifest.Applications.Gecko.ID
 	version := manifest.Version
 
-	err = s.AwaitValidation(c, appID, version)
+	err = s.AwaitValidation(appID, version)
 	if err != nil {
 		return fmt.Errorf("[Insert] wasn't able to validate extension: %s, version: %s, due to: %w", appID, version, err)
 	}
 
-	versionID, err := s.VersionID(c, appID, version)
+	versionID, err := s.VersionID(appID, version)
 	if err != nil {
 		return fmt.Errorf("[Insert] wasn't able to get version ID: %s, version: %s, due to: %w", appID, version, err)
 	}
 
-	_, err = s.UploadSource(c, appID, versionID, sourcepath)
+	_, err = s.UploadSource(appID, versionID, sourcepath)
 	if err != nil {
 		return fmt.Errorf("[Insert] wasn't able to upload source: %s, version: %s, sourcepath: %s, due to: %w", appID, version, sourcepath, err)
 	}
@@ -551,7 +555,7 @@ func (s *Store) Insert(c Client, filepath, sourcepath string) (err error) {
 }
 
 // UploadUpdate uploads the extension update.
-func (s *Store) UploadUpdate(c Client, appID, version, filePath string) (result []byte, err error) {
+func (s *Store) UploadUpdate(appID, version, filePath string) (result []byte, err error) {
 	log.Debug("start uploading update for extension: %q", filePath)
 
 	const apiPath = "api/v5/addons"
@@ -589,7 +593,7 @@ func (s *Store) UploadUpdate(c Client, appID, version, filePath string) (result 
 		return nil, fmt.Errorf("[UploadUpdate] wasn't able to create request due to: %w", err)
 	}
 
-	authHeader, err := c.GenAuthHeader()
+	authHeader, err := s.client.GenAuthHeader()
 	if err != nil {
 		return nil, fmt.Errorf("[UploadUpdate] wasn't able to generate auth header due to: %w", err)
 	}
@@ -619,7 +623,7 @@ func (s *Store) UploadUpdate(c Client, appID, version, filePath string) (result 
 
 // Update uploads new version of extension to the store
 // Before uploading it reads manifest.json for getting extension version and uuid.
-func (s *Store) Update(c Client, filepath, sourcepath string) (err error) {
+func (s *Store) Update(filepath, sourcepath string) (err error) {
 	log.Debug("start uploading update for extension: %s, with source: %s", filepath, sourcepath)
 
 	manifest, err := parseManifest(filepath)
@@ -630,22 +634,22 @@ func (s *Store) Update(c Client, filepath, sourcepath string) (err error) {
 	appID := manifest.Applications.Gecko.ID
 	version := manifest.Version
 
-	_, err = s.UploadUpdate(c, appID, version, filepath)
+	_, err = s.UploadUpdate(appID, version, filepath)
 	if err != nil {
 		return fmt.Errorf("[Update] wasn't able to upload update for extension: %s, version: %s, due to: %w", appID, version, err)
 	}
 
-	err = s.AwaitValidation(c, appID, version)
+	err = s.AwaitValidation(appID, version)
 	if err != nil {
 		return fmt.Errorf("[Update] wasn't able to validate extension: %s, version: %s, due to: %w", appID, version, err)
 	}
 
-	versionID, err := s.VersionID(c, appID, version)
+	versionID, err := s.VersionID(appID, version)
 	if err != nil {
 		return fmt.Errorf("[Update] wasn't able to get version ID: %s, version: %s, due to: %w", appID, version, err)
 	}
 
-	_, err = s.UploadSource(c, appID, versionID, sourcepath)
+	_, err = s.UploadSource(appID, versionID, sourcepath)
 	if err != nil {
 		return fmt.Errorf("[Update] wasn't able to upload source: %s, version: %s, sourcepath: %s, due to: %w", appID, version, sourcepath, err)
 	}
@@ -654,7 +658,7 @@ func (s *Store) Update(c Client, filepath, sourcepath string) (err error) {
 }
 
 // AwaitSigning waits for the extension to be signed.
-func (s *Store) AwaitSigning(c Client, appID, version string) (err error) {
+func (s *Store) AwaitSigning(appID, version string) (err error) {
 	log.Debug("start waiting for signing of extension: %s", appID)
 
 	// TODO(maximtop): move constants to config
@@ -668,7 +672,7 @@ func (s *Store) AwaitSigning(c Client, appID, version string) (err error) {
 			return fmt.Errorf("await signing timeout")
 		}
 
-		uploadStatus, err := s.UploadStatus(c, appID, version)
+		uploadStatus, err := s.UploadStatus(appID, version)
 		if err != nil {
 			return fmt.Errorf("[AwaitSigning] wasn't able to get upload status: %s, version: %s, due to: %w", appID, version, err)
 		}
@@ -689,10 +693,10 @@ func (s *Store) AwaitSigning(c Client, appID, version string) (err error) {
 }
 
 // DownloadSigned downloads signed extension.
-func (s *Store) DownloadSigned(c Client, appID, version string) (err error) {
+func (s *Store) DownloadSigned(appID, version string) (err error) {
 	log.Debug("start downloading signed extension: %s", appID)
 
-	uploadStatus, err := s.UploadStatus(c, appID, version)
+	uploadStatus, err := s.UploadStatus(appID, version)
 	if err != nil {
 		return fmt.Errorf("[DownloadSigned] wasn't able to get upload status: %s, version: %s, due to: %w", appID, version, err)
 	}
@@ -710,7 +714,7 @@ func (s *Store) DownloadSigned(c Client, appID, version string) (err error) {
 		return fmt.Errorf("[DownloadSigned] wasn't able to create request due to: %w", err)
 	}
 
-	authHeader, err := c.GenAuthHeader()
+	authHeader, err := s.client.GenAuthHeader()
 	if err != nil {
 		return fmt.Errorf("[DownloadSigned] wasn't able to generate auth header due to: %w", err)
 	}
@@ -752,7 +756,7 @@ func (s *Store) DownloadSigned(c Client, appID, version string) (err error) {
 
 // Sign uploads the extension to the store, waits for signing, downloads and saves the signed
 // extension in the directory
-func (s *Store) Sign(c Client, filepath string) (err error) {
+func (s *Store) Sign(filepath string) (err error) {
 	log.Debug("start signing extension: %q", filepath)
 
 	manifest, err := parseManifest(filepath)
@@ -763,17 +767,17 @@ func (s *Store) Sign(c Client, filepath string) (err error) {
 	appID := manifest.Applications.Gecko.ID
 	version := manifest.Version
 
-	_, err = s.UploadUpdate(c, appID, version, filepath)
+	_, err = s.UploadUpdate(appID, version, filepath)
 	if err != nil {
 		return fmt.Errorf("[Sign] wasn't able to upload extension: %s, version: %s, due to: %w", appID, version, err)
 	}
 
-	err = s.AwaitSigning(c, appID, version)
+	err = s.AwaitSigning(appID, version)
 	if err != nil {
 		return fmt.Errorf("[Sign] wasn't able to wait for signing of extension: %s, version: %s, due to: %w", appID, version, err)
 	}
 
-	err = s.DownloadSigned(c, appID, version)
+	err = s.DownloadSigned(appID, version)
 	if err != nil {
 		return fmt.Errorf("[Sign] wasn't able to download signed extension: %s, version: %s, due to: %w", appID, version, err)
 	}

@@ -120,14 +120,14 @@ func main() {
 					Action: func(c *cli.Context) error {
 						store, err := getFirefoxStore()
 						if err != nil {
-							return err
+							return fmt.Errorf("initializing firefox store: %w", err)
 						}
 
 						appID := c.String("app")
 
 						status, err := store.Status(appID)
 						if err != nil {
-							return err
+							return fmt.Errorf("getting status: %w", err)
 						}
 
 						fmt.Printf("%s\n", status)
@@ -142,13 +142,13 @@ func main() {
 					Action: func(c *cli.Context) error {
 						store, err := getChromeStore()
 						if err != nil {
-							return err
+							return fmt.Errorf("initializing chrome store: %w", err)
 						}
 
 						appID := c.String("app")
 						status, err := store.Status(appID)
 						if err != nil {
-							return err
+							return fmt.Errorf("getting status from chrome store: %w", err)
 						}
 
 						fmt.Printf("%s\n", status)
@@ -170,14 +170,14 @@ func main() {
 					Action: func(c *cli.Context) error {
 						store, err := getChromeStore()
 						if err != nil {
-							return err
+							return fmt.Errorf("initializing chrome store: %w", err)
 						}
 
 						filepath := c.String("file")
 
 						result, err := store.Insert(filepath)
 						if err != nil {
-							return err
+							return fmt.Errorf("inserting extension: %w", err)
 						}
 
 						fmt.Println(result)
@@ -195,7 +195,7 @@ func main() {
 					Action: func(c *cli.Context) error {
 						store, err := getFirefoxStore()
 						if err != nil {
-							return err
+							return fmt.Errorf("initializing firefox store: %w", err)
 						}
 
 						filepath := c.String("file")
@@ -203,7 +203,7 @@ func main() {
 
 						err = store.Insert(filepath, sourcepath)
 						if err != nil {
-							return err
+							return fmt.Errorf("inserting extension: %w", err)
 						}
 
 						return nil
@@ -225,7 +225,7 @@ func main() {
 					Action: func(c *cli.Context) error {
 						store, err := getChromeStore()
 						if err != nil {
-							return err
+							return fmt.Errorf("initializing chrome store: %w", err)
 						}
 
 						filepath := c.String("file")
@@ -233,7 +233,7 @@ func main() {
 
 						result, err := store.Update(appID, filepath)
 						if err != nil {
-							return err
+							return fmt.Errorf("updating extension: %w", err)
 						}
 
 						fmt.Println(result)
@@ -251,7 +251,7 @@ func main() {
 					Action: func(c *cli.Context) error {
 						store, err := getFirefoxStore()
 						if err != nil {
-							return err
+							return fmt.Errorf("getting firefox store: %w", err)
 						}
 
 						filepath := c.String("file")
@@ -259,7 +259,7 @@ func main() {
 
 						err = store.Update(filepath, sourcepath)
 						if err != nil {
-							return err
+							return fmt.Errorf("updating extension: %w", err)
 						}
 
 						return nil
@@ -275,7 +275,7 @@ func main() {
 					Action: func(c *cli.Context) error {
 						store, err := getEdgeStore()
 						if err != nil {
-							return err
+							return fmt.Errorf("getting edge store: %w", err)
 						}
 
 						filepath := c.String("file")
@@ -283,7 +283,7 @@ func main() {
 
 						result, err := store.Update(appID, filepath, edge.UpdateOptions{})
 						if err != nil {
-							return err
+							return fmt.Errorf("updating extension: %w", err)
 						}
 
 						fmt.Println(result)
@@ -306,14 +306,14 @@ func main() {
 					Action: func(c *cli.Context) error {
 						store, err := getChromeStore()
 						if err != nil {
-							return err
+							return fmt.Errorf("initializing chrome store: %w", err)
 						}
 
 						appID := c.String("app")
 
 						result, err := store.Publish(appID)
 						if err != nil {
-							return err
+							return fmt.Errorf("publishing extension: %w", err)
 						}
 
 						fmt.Println(result)
@@ -330,14 +330,14 @@ func main() {
 					Action: func(c *cli.Context) error {
 						store, err := getEdgeStore()
 						if err != nil {
-							return err
+							return fmt.Errorf("getting edge store: %w", err)
 						}
 
 						appID := c.String("app")
 
 						result, err := store.Publish(appID)
 						if err != nil {
-							return err
+							return fmt.Errorf("publishing extension: %w", err)
 						}
 
 						fmt.Println(result)
@@ -360,14 +360,14 @@ func main() {
 					Action: func(c *cli.Context) error {
 						store, err := getFirefoxStore()
 						if err != nil {
-							return err
+							return fmt.Errorf("getting firefox store: %w", err)
 						}
 
 						filepath := c.String("file")
 
 						err = store.Sign(filepath)
 						if err != nil {
-							return err
+							return fmt.Errorf("signing extension: %w", err)
 						}
 
 						return nil

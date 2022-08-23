@@ -1,7 +1,7 @@
 module github.com/maximtop/extdash
 
 // +heroku goVersion go1.17
-go 1.18
+go 1.19
 
 require (
 	github.com/AdguardTeam/golibs v0.10.9

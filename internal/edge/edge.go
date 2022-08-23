@@ -14,7 +14,6 @@ import (
 
 	"github.com/AdguardTeam/golibs/errors"
 	"github.com/AdguardTeam/golibs/log"
-	"github.com/maximtop/extdash/internal/urlutil"
 )
 
 const requestTimeout = 30 * time.Second
@@ -209,7 +208,7 @@ func (s Store) Update(appID, filepath string, updateOptions UpdateOptions) (resu
 // UploadUpdate uploads the update to the store.
 func (s Store) UploadUpdate(appID, filePath string) (result string, err error) {
 	const apiPath = "/v1/products"
-	apiURL := urlutil.JoinURL(s.URL, apiPath, appID, "submissions/draft/package")
+	apiURL := s.URL.JoinPath(apiPath, appID, "submissions/draft/package").String()
 
 	file, err := os.Open(filepath.Clean(filePath))
 	if err != nil {
@@ -258,7 +257,7 @@ func (s Store) UploadUpdate(appID, filePath string) (result string, err error) {
 // UploadStatus returns the status of the upload.
 func (s Store) UploadStatus(appID, operationID string) (response *UploadStatusResponse, err error) {
 	apiPath := "v1/products"
-	apiURL := urlutil.JoinURL(s.URL, apiPath, appID, "submissions/draft/package/operations", operationID)
+	apiURL := s.URL.JoinPath(apiPath, appID, "submissions/draft/package/operations", operationID).String()
 
 	req, err := http.NewRequest(http.MethodGet, apiURL, nil)
 	if err != nil {
@@ -297,7 +296,7 @@ func (s Store) UploadStatus(appID, operationID string) (response *UploadStatusRe
 // PublishExtension publishes the extension to the store and returns operationID.
 func (s Store) PublishExtension(appID string) (result string, err error) {
 	apiPath := "/v1/products/"
-	apiURL := urlutil.JoinURL(s.URL, apiPath, appID, "submissions")
+	apiURL := s.URL.JoinPath(apiPath, appID, "submissions").String()
 
 	// TODO (maximtop): consider adding body to the request with notes for reviewers.
 	req, err := http.NewRequest(http.MethodPost, apiURL, nil)
@@ -346,7 +345,7 @@ type PublishStatusResponse struct {
 // PublishStatus returns the status of the extension publish.
 func (s Store) PublishStatus(appID, operationID string) (response *PublishStatusResponse, err error) {
 	apiPath := "v1/products/"
-	apiURL := urlutil.JoinURL(s.URL, apiPath, appID, "submissions/operations", operationID)
+	apiURL := s.URL.JoinPath(apiPath, appID, "submissions/operations", operationID).String()
 
 	accessToken, err := s.client.Authorize()
 	if err != nil {

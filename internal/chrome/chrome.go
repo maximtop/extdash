@@ -13,7 +13,6 @@ import (
 
 	"github.com/AdguardTeam/golibs/errors"
 	"github.com/maximtop/extdash/internal/fileutil"
-	"github.com/maximtop/extdash/internal/urlutil"
 )
 
 // Client describes structure of a Chrome Store API client.
@@ -99,7 +98,7 @@ const requestTimeout = 30 * time.Second
 // Status retrieves status of the extension in the store.
 func (s *Store) Status(appID string) (result []byte, err error) {
 	const apiPath = "chromewebstore/v1.1/items"
-	apiURL := urlutil.JoinURL(s.URL, apiPath, appID)
+	apiURL := s.URL.JoinPath(apiPath, appID).String()
 
 	accessToken, err := s.client.Authorize()
 	if err != nil {
@@ -146,7 +145,7 @@ type InsertResponse struct {
 // Insert uploads a package to create a new store item.
 func (s *Store) Insert(filePath string) (result *InsertResponse, err error) {
 	const apiPath = "upload/chromewebstore/v1.1/items"
-	apiURL := urlutil.JoinURL(s.URL, apiPath)
+	apiURL := s.URL.JoinPath(apiPath).String()
 
 	accessToken, err := s.client.Authorize()
 	if err != nil {
@@ -200,7 +199,7 @@ type UpdateResponse struct {
 // Update uploads new version of the package to the store.
 func (s *Store) Update(appID, filePath string) (result *UpdateResponse, err error) {
 	const apiPath = "upload/chromewebstore/v1.1/items/"
-	apiURL := urlutil.JoinURL(s.URL, apiPath, appID)
+	apiURL := s.URL.JoinPath(apiPath, appID).String()
 
 	accessToken, err := s.client.Authorize()
 	if err != nil {
@@ -255,7 +254,7 @@ type PublishResponse struct {
 // Publish publishes app to the store.
 func (s *Store) Publish(appID string) (result *PublishResponse, err error) {
 	const apiPath = "chromewebstore/v1.1/items"
-	apiURL := urlutil.JoinURL(s.URL, apiPath, appID, "publish")
+	apiURL := s.URL.JoinPath(apiPath, appID, "publish").String()
 
 	accessToken, err := s.client.Authorize()
 	if err != nil {

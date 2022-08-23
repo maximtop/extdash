@@ -19,7 +19,6 @@ import (
 	"github.com/AdguardTeam/golibs/log"
 	"github.com/golang-jwt/jwt/v4"
 	"github.com/maximtop/extdash/internal/fileutil"
-	"github.com/maximtop/extdash/internal/urlutil"
 )
 
 // AMO main url is https://addons.mozilla.org/
@@ -134,7 +133,7 @@ func parseManifest(zipFilepath string) (result Manifest, err error) {
 func (s *Store) Status(appID string) (result []byte, err error) {
 	apiPath := "api/v5/addons/addon/"
 
-	apiURL := urlutil.JoinURL(s.URL, apiPath, appID)
+	apiURL := s.URL.JoinPath(apiPath, appID).String()
 
 	req, err := http.NewRequest(http.MethodGet, apiURL, nil)
 	if err != nil {
@@ -191,7 +190,7 @@ func (s *Store) VersionID(appID, version string) (result string, err error) {
 
 	queryString := url.Values{}
 	queryString.Add("filter", "all_with_unlisted")
-	apiURL := urlutil.JoinURL(s.URL, apiPath, appID, "versions") + "?" + queryString.Encode()
+	apiURL := s.URL.JoinPath(apiPath, appID, "versions").String() + "?" + queryString.Encode()
 
 	req, err := http.NewRequest(http.MethodGet, apiURL, nil)
 	if err != nil {
@@ -253,7 +252,7 @@ func (s *Store) UploadSource(appID, versionID, sourcePath string) (result []byte
 
 	const apiPath = "api/v5/addons/addon/"
 
-	apiURL := urlutil.JoinURL(s.URL, apiPath, appID, "versions", versionID) + "/"
+	apiURL := s.URL.JoinPath(apiPath, appID, "versions", versionID, "/").String()
 
 	file, err := os.Open(filepath.Clean(sourcePath))
 	if err != nil {
@@ -367,12 +366,13 @@ func (w *ReviewedStatus) UnmarshalJSON(b []byte) error {
 // UploadStatus retrieves upload status of the extension.
 //
 // curl "https://addons.mozilla.org/api/v5/addons/@my-addon/versions/1.0/"
-// 		-g -H "Authorization: JWT <jwt-token>"
+//
+//	-g -H "Authorization: JWT <jwt-token>"
 func (s *Store) UploadStatus(appID, version string) (status *UploadStatus, err error) {
 	log.Debug("getting upload status for appID: %s, version: %s", appID, version)
 
 	const apiPath = "api/v5/addons"
-	apiURL := urlutil.JoinURL(s.URL, apiPath, appID, "versions", version)
+	apiURL := s.URL.JoinPath(apiPath, appID, "versions", version).String()
 
 	req, err := http.NewRequest(http.MethodGet, apiURL, nil)
 	if err != nil {
@@ -447,10 +447,11 @@ func (s *Store) AwaitValidation(appID, version string) (err error) {
 // UploadNew uploads the extension to the store for the first time
 // https://addons-server.readthedocs.io/en/latest/topics/api/signing.html?highlight=%2Faddons%2F#post--api-v5-addons-
 // CURL example:
-// curl -v -XPOST \
-//  -H "Authorization: JWT ${ACCESS_TOKEN}" \
-//  -F "upload=@tmp/extension.zip" \
-//  "https://addons.mozilla.org/api/v5/addons/"
+//
+//	curl -v -XPOST \
+//	 -H "Authorization: JWT ${ACCESS_TOKEN}" \
+//	 -F "upload=@tmp/extension.zip" \
+//	 "https://addons.mozilla.org/api/v5/addons/"
 func (s *Store) UploadNew(filePath string) (result []byte, err error) {
 	log.Debug("uploading new extension: %q", filePath)
 
@@ -458,7 +459,7 @@ func (s *Store) UploadNew(filePath string) (result []byte, err error) {
 
 	// trailing slash is required for this request
 	// in go 1.19 would be possible u.JoinPath("users", "/")
-	apiURL := urlutil.JoinURL(s.URL, apiPath) + "/"
+	apiURL := s.URL.JoinPath(apiPath, "/").String()
 
 	file, err := os.Open(filepath.Clean(filePath))
 	if err != nil {
@@ -566,7 +567,8 @@ func (s *Store) UploadUpdate(appID, version, filePath string) (result []byte, er
 	}
 	defer func() { err = errors.WithDeferred(err, file.Close()) }()
 
-	apiURL := urlutil.JoinURL(s.URL, apiPath, appID, "versions", version) + "/" // trailing slash is required for this request
+	// trailing slash is required for this request
+	apiURL := s.URL.JoinPath(apiPath, appID, "versions", version, "/").String()
 
 	body := &bytes.Buffer{}
 	writer := multipart.NewWriter(body)

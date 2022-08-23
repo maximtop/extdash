@@ -5,6 +5,7 @@ import (
 	"io"
 	"net/http"
 	"net/http/httptest"
+	"net/url"
 	"testing"
 
 	"github.com/maximtop/extdash/internal/chrome"
@@ -114,8 +115,13 @@ func TestStatus(t *testing.T) {
 	}))
 	defer storeServer.Close()
 
-	store, err := chrome.NewStore(&client, storeServer.URL)
+	storeUrl, err := url.Parse(storeServer.URL)
 	require.NoError(t, err)
+
+	store := chrome.Store{
+		Client: &client,
+		URL:    storeUrl,
+	}
 
 	actualStatusBytes, err := store.Status(appID)
 	require.NoError(t, err)
@@ -168,8 +174,13 @@ func TestInsert(t *testing.T) {
 	}))
 	defer storeServer.Close()
 
-	store, err := chrome.NewStore(&client, storeServer.URL)
+	storeUrl, err := url.Parse(storeServer.URL)
 	require.NoError(t, err)
+
+	store := chrome.Store{
+		Client: &client,
+		URL:    storeUrl,
+	}
 
 	result, err := store.Insert("./testdata/test.txt")
 	require.NoError(t, err)
@@ -214,8 +225,13 @@ func TestUpdate(t *testing.T) {
 	}))
 	defer storeServer.Close()
 
-	store, err := chrome.NewStore(&client, storeServer.URL)
+	storeUrl, err := url.Parse(storeServer.URL)
 	require.NoError(t, err)
+
+	store := chrome.Store{
+		Client: &client,
+		URL:    storeUrl,
+	}
 
 	result, err := store.Update(appID, "testdata/test.txt")
 	require.NoError(t, err)
@@ -256,8 +272,13 @@ func TestPublish(t *testing.T) {
 	}))
 	defer storeServer.Close()
 
-	store, err := chrome.NewStore(&client, storeServer.URL)
+	storeUrl, err := url.Parse(storeServer.URL)
 	require.NoError(t, err)
+
+	store := chrome.Store{
+		Client: &client,
+		URL:    storeUrl,
+	}
 
 	result, err := store.Publish(appID)
 	require.NoError(t, err)

@@ -65,12 +65,13 @@ func (c *Client) Authorize() (accessToken string, err error) {
 
 	client := http.Client{Timeout: requestTimeout}
 
-	response, err := client.Do(req)
+	res, err := client.Do(req)
 	if err != nil {
 		return "", fmt.Errorf("sending request: %w", err)
 	}
+	defer func() { err = errors.WithDeferred(err, res.Body.Close()) }()
 
-	responseBody, err := io.ReadAll(response.Body)
+	responseBody, err := io.ReadAll(res.Body)
 	if err != nil {
 		return "", fmt.Errorf("reading response: %w", err)
 	}
@@ -87,21 +88,8 @@ func (c *Client) Authorize() (accessToken string, err error) {
 
 // Store represents the edge store instance
 type Store struct {
-	client *Client
+	Client *Client
 	URL    *url.URL
-}
-
-// NewStore creates a new edge Store instance.
-func NewStore(client *Client, rawURL string) (store Store, err error) {
-	URL, err := url.Parse(rawURL)
-	if err != nil {
-		return Store{}, fmt.Errorf("can't parse URL: %s, error: %w", rawURL, err)
-	}
-
-	return Store{
-		client: client,
-		URL:    URL,
-	}, nil
 }
 
 // Status represents the status of the update or publish.
@@ -226,7 +214,7 @@ func (s Store) UploadUpdate(appID, filePath string) (result string, err error) {
 		return "", fmt.Errorf("creating request: %w", err)
 	}
 
-	accessToken, err := s.client.Authorize()
+	accessToken, err := s.Client.Authorize()
 	if err != nil {
 		return "", fmt.Errorf("authorizing: %w", err)
 	}
@@ -240,6 +228,7 @@ func (s Store) UploadUpdate(appID, filePath string) (result string, err error) {
 	if err != nil {
 		return "", fmt.Errorf("sending request: %w", err)
 	}
+	defer func() { err = errors.WithDeferred(err, res.Body.Close()) }()
 
 	if res.StatusCode != http.StatusAccepted {
 		return "", fmt.Errorf("unexpected status code %s", res.Status)
@@ -264,7 +253,7 @@ func (s Store) UploadStatus(appID, operationID string) (response *UploadStatusRe
 		return nil, fmt.Errorf("creating request: %w", err)
 	}
 
-	accessToken, err := s.client.Authorize()
+	accessToken, err := s.Client.Authorize()
 	if err != nil {
 		return nil, fmt.Errorf("authorizing: %w", err)
 	}
@@ -279,6 +268,7 @@ func (s Store) UploadStatus(appID, operationID string) (response *UploadStatusRe
 	if err != nil {
 		return nil, fmt.Errorf("sending request: %w", err)
 	}
+	defer func() { err = errors.WithDeferred(err, res.Body.Close()) }()
 
 	responseBody, err := io.ReadAll(res.Body)
 	if err != nil {
@@ -304,7 +294,7 @@ func (s Store) PublishExtension(appID string) (result string, err error) {
 		return "", fmt.Errorf("creating request: %w", err)
 	}
 
-	accessToken, err := s.client.Authorize()
+	accessToken, err := s.Client.Authorize()
 	if err != nil {
 		return "", fmt.Errorf("authorizing: %w", err)
 	}
@@ -317,6 +307,7 @@ func (s Store) PublishExtension(appID string) (result string, err error) {
 	if err != nil {
 		return "", fmt.Errorf("sending request: %w", err)
 	}
+	defer func() { err = errors.WithDeferred(err, res.Body.Close()) }()
 
 	if res.StatusCode != http.StatusAccepted {
 		return "", fmt.Errorf("unexpected status code %s", res.Status)
@@ -347,7 +338,7 @@ func (s Store) PublishStatus(appID, operationID string) (response *PublishStatus
 	apiPath := "v1/products/"
 	apiURL := s.URL.JoinPath(apiPath, appID, "submissions/operations", operationID).String()
 
-	accessToken, err := s.client.Authorize()
+	accessToken, err := s.Client.Authorize()
 	if err != nil {
 		return nil, fmt.Errorf("authorizing: %w", err)
 	}
@@ -365,6 +356,7 @@ func (s Store) PublishStatus(appID, operationID string) (response *PublishStatus
 	if err != nil {
 		return nil, fmt.Errorf("sending request: %w", err)
 	}
+	defer func() { err = errors.WithDeferred(err, res.Body.Close()) }()
 
 	if res.StatusCode != http.StatusOK {
 		return nil, fmt.Errorf("unexpected response %s", res.Status)

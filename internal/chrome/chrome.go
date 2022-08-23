@@ -70,18 +70,8 @@ func (c *Client) Authorize() (accessToken string, err error) {
 
 // Store describes structure of the store.
 type Store struct {
-	client *Client
+	Client *Client
 	URL    *url.URL
-}
-
-// NewStore parses url and creates new store instance.
-func NewStore(client *Client, rawURL string) (s Store, err error) {
-	URL, err := url.Parse(rawURL)
-	if err != nil {
-		return Store{}, fmt.Errorf("error parsing url: %s due to: %w", rawURL, err)
-	}
-
-	return Store{client: client, URL: URL}, nil
 }
 
 // StatusResponse describes status response fields.
@@ -100,7 +90,7 @@ func (s *Store) Status(appID string) (result []byte, err error) {
 	const apiPath = "chromewebstore/v1.1/items"
 	apiURL := s.URL.JoinPath(apiPath, appID).String()
 
-	accessToken, err := s.client.Authorize()
+	accessToken, err := s.Client.Authorize()
 	if err != nil {
 		return nil, fmt.Errorf("getting access token: %w", err)
 	}
@@ -147,7 +137,7 @@ func (s *Store) Insert(filePath string) (result *InsertResponse, err error) {
 	const apiPath = "upload/chromewebstore/v1.1/items"
 	apiURL := s.URL.JoinPath(apiPath).String()
 
-	accessToken, err := s.client.Authorize()
+	accessToken, err := s.Client.Authorize()
 	if err != nil {
 		return nil, fmt.Errorf("getting access token: %w", err)
 	}
@@ -201,7 +191,7 @@ func (s *Store) Update(appID, filePath string) (result *UpdateResponse, err erro
 	const apiPath = "upload/chromewebstore/v1.1/items/"
 	apiURL := s.URL.JoinPath(apiPath, appID).String()
 
-	accessToken, err := s.client.Authorize()
+	accessToken, err := s.Client.Authorize()
 	if err != nil {
 		return nil, fmt.Errorf("getting access token: %w", err)
 	}
@@ -256,7 +246,7 @@ func (s *Store) Publish(appID string) (result *PublishResponse, err error) {
 	const apiPath = "chromewebstore/v1.1/items"
 	apiURL := s.URL.JoinPath(apiPath, appID, "publish").String()
 
-	accessToken, err := s.client.Authorize()
+	accessToken, err := s.Client.Authorize()
 	if err != nil {
 		return nil, fmt.Errorf("getting access token: %w", err)
 	}

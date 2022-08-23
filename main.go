@@ -3,6 +3,7 @@ package main
 import (
 	"fmt"
 	"log"
+	"net/url"
 	"os"
 
 	"github.com/caarlos0/env/v6"
@@ -22,24 +23,25 @@ func getChromeStore() (*chrome.Store, error) {
 
 	cfg := config{}
 	if err := env.Parse(&cfg); err != nil {
-		return nil, fmt.Errorf("failed to parse environment variables: %s", err)
+		return nil, fmt.Errorf("failed to parse environment variables: %w", err)
 	}
 
-	fmt.Printf("%+v\n", cfg)
-
-	chromeClient := chrome.Client{
+	client := chrome.Client{
 		URL:          "https://accounts.google.com/o/oauth2/token",
 		ClientID:     cfg.ClientID,
 		ClientSecret: cfg.ClientSecret,
 		RefreshToken: cfg.RefreshToken,
 	}
 
-	chromeStore, err := chrome.NewStore(&chromeClient, "https://www.googleapis.com")
-	if err != nil {
-		return nil, fmt.Errorf("failed to initialize Chrome Store: %s", err)
+	store := chrome.Store{
+		Client: &client,
+		URL: &url.URL{
+			Scheme: "https",
+			Host:   "www.googleapis.com",
+		},
 	}
 
-	return &chromeStore, nil
+	return &store, nil
 }
 
 func getFirefoxStore() (*firefox.Store, error) {
@@ -50,7 +52,7 @@ func getFirefoxStore() (*firefox.Store, error) {
 
 	cfg := config{}
 	if err := env.Parse(&cfg); err != nil {
-		return nil, fmt.Errorf("failed to parse environment variables: %s", err)
+		return nil, fmt.Errorf("failed to parse environment variables: %w", err)
 	}
 
 	client := firefox.NewClient(firefox.ClientConfig{
@@ -58,9 +60,12 @@ func getFirefoxStore() (*firefox.Store, error) {
 		ClientSecret: cfg.ClientSecret,
 	})
 
-	store, err := firefox.NewStore(&client, "https://addons.mozilla.org/")
-	if err != nil {
-		return nil, fmt.Errorf("failed to initialize Firefox Store: %s", err)
+	store := firefox.Store{
+		Client: &client,
+		URL: &url.URL{
+			Scheme: "https",
+			Host:   "addons.mozilla.org",
+		},
 	}
 
 	return &store, nil
@@ -75,7 +80,7 @@ func getEdgeStore() (*edge.Store, error) {
 
 	cfg := config{}
 	if err := env.Parse(&cfg); err != nil {
-		return nil, fmt.Errorf("failed to parse environment variables: %s", err)
+		return nil, fmt.Errorf("failed to parse environment variables: %w", err)
 	}
 
 	client, err := edge.NewClient(
@@ -84,15 +89,18 @@ func getEdgeStore() (*edge.Store, error) {
 		cfg.AccessToken,
 	)
 	if err != nil {
-		return nil, fmt.Errorf("failed to initialize Edge Store Client: %s", err)
+		return nil, fmt.Errorf("failed to initialize Edge Store Client: %w", err)
 	}
 
-	edgeStore, err := edge.NewStore(&client, "https://api.addons.microsoftedge.microsoft.com")
-	if err != nil {
-		return nil, fmt.Errorf("failed to initialize Edge Store: %s", err)
+	store := edge.Store{
+		Client: &client,
+		URL: &url.URL{
+			Scheme: "https",
+			Host:   "api.addons.microsoftedge.microsoft.com",
+		},
 	}
 
-	return &edgeStore, nil
+	return &store, nil
 }
 
 func main() {

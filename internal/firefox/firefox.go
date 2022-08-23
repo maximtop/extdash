@@ -87,21 +87,8 @@ func (c Client) GenAuthHeader() (result string, err error) {
 
 // Store type describes store structure.
 type Store struct {
-	client *Client
+	Client *Client
 	URL    *url.URL
-}
-
-// NewStore parses rawUrl and creates instance of the Store.
-func NewStore(client *Client, rawURL string) (s Store, err error) {
-	URL, err := url.Parse(rawURL)
-	if err != nil {
-		return Store{}, fmt.Errorf("failed parse url %s due to: %w", rawURL, err)
-	}
-
-	return Store{
-		client: client,
-		URL:    URL,
-	}, nil
 }
 
 // Manifest describes required fields parsed from the manifest.
@@ -140,7 +127,7 @@ func (s *Store) Status(appID string) (result []byte, err error) {
 		return nil, fmt.Errorf("creating request: %w", err)
 	}
 
-	authHeader, err := s.client.GenAuthHeader()
+	authHeader, err := s.Client.GenAuthHeader()
 	if err != nil {
 		return nil, fmt.Errorf("generating auth header: %w", err)
 	}
@@ -197,7 +184,7 @@ func (s *Store) VersionID(appID, version string) (result string, err error) {
 		return "", fmt.Errorf("creating request: %w", err)
 	}
 
-	authHeader, err := s.client.GenAuthHeader()
+	authHeader, err := s.Client.GenAuthHeader()
 	if err != nil {
 		return "", fmt.Errorf("generating auth header: %w", err)
 	}
@@ -285,7 +272,7 @@ func (s *Store) UploadSource(appID, versionID, sourcePath string) (result []byte
 
 	req.Header.Set("Content-Type", writer.FormDataContentType())
 
-	authHeader, err := s.client.GenAuthHeader()
+	authHeader, err := s.Client.GenAuthHeader()
 	if err != nil {
 		return nil, fmt.Errorf("generating header: %w", err)
 	}
@@ -379,7 +366,7 @@ func (s *Store) UploadStatus(appID, version string) (status *UploadStatus, err e
 		return nil, fmt.Errorf("creating request: %w", err)
 	}
 
-	authHeader, err := s.client.GenAuthHeader()
+	authHeader, err := s.Client.GenAuthHeader()
 	if err != nil {
 		return nil, fmt.Errorf("generating header: %w", err)
 	}
@@ -490,7 +477,7 @@ func (s *Store) UploadNew(filePath string) (result []byte, err error) {
 		return nil, fmt.Errorf("[UploadNew] wasn't able to create request due to: %w", err)
 	}
 
-	authHeader, err := s.client.GenAuthHeader()
+	authHeader, err := s.Client.GenAuthHeader()
 	if err != nil {
 		return nil, fmt.Errorf("[UploadNew] wasn't able to generate auth header due to: %w", err)
 	}
@@ -595,7 +582,7 @@ func (s *Store) UploadUpdate(appID, version, filePath string) (result []byte, er
 		return nil, fmt.Errorf("[UploadUpdate] wasn't able to create request due to: %w", err)
 	}
 
-	authHeader, err := s.client.GenAuthHeader()
+	authHeader, err := s.Client.GenAuthHeader()
 	if err != nil {
 		return nil, fmt.Errorf("[UploadUpdate] wasn't able to generate auth header due to: %w", err)
 	}
@@ -716,7 +703,7 @@ func (s *Store) DownloadSigned(appID, version string) (err error) {
 		return fmt.Errorf("[DownloadSigned] wasn't able to create request due to: %w", err)
 	}
 
-	authHeader, err := s.client.GenAuthHeader()
+	authHeader, err := s.Client.GenAuthHeader()
 	if err != nil {
 		return fmt.Errorf("[DownloadSigned] wasn't able to generate auth header due to: %w", err)
 	}

@@ -4,6 +4,7 @@ import (
 	"io"
 	"net/http"
 	"net/http/httptest"
+	"net/url"
 	"path"
 	"testing"
 	"time"
@@ -45,8 +46,13 @@ func TestStatus(t *testing.T) {
 	}))
 	defer storeServer.Close()
 
-	store, err := firefox.NewStore(&client, storeServer.URL)
+	storeURL, err := url.Parse(storeServer.URL)
 	require.NoError(t, err)
+
+	store := firefox.Store{
+		Client: &client,
+		URL:    storeURL,
+	}
 
 	actualStatus, err := store.Status(appID)
 
@@ -87,8 +93,13 @@ func TestUploadNew(t *testing.T) {
 	}))
 	defer storeServer.Close()
 
-	store, err := firefox.NewStore(&client, storeServer.URL)
+	storeUrl, err := url.Parse(storeServer.URL)
 	require.NoError(t, err)
+
+	store := firefox.Store{
+		Client: &client,
+		URL:    storeUrl,
+	}
 
 	result, err := store.UploadNew("testdata/test.txt")
 	require.NoError(t, err)
@@ -125,8 +136,13 @@ func TestUploadUpdate(t *testing.T) {
 	}))
 	defer storeServer.Close()
 
-	store, err := firefox.NewStore(&client, storeServer.URL)
+	storeUrl, err := url.Parse(storeServer.URL)
 	require.NoError(t, err)
+
+	store := firefox.Store{
+		Client: &client,
+		URL:    storeUrl,
+	}
 
 	actualResponse, err := store.UploadUpdate(appID, version, "testdata/extension.zip")
 	require.NoError(t, err)
@@ -161,9 +177,15 @@ func TestUploadSource(t *testing.T) {
 		_, err = w.Write([]byte(response))
 		require.NoError(t, err)
 	}))
+	defer storeServer.Close()
 
-	store, err := firefox.NewStore(&client, storeServer.URL)
+	storeUrl, err := url.Parse(storeServer.URL)
 	require.NoError(t, err)
+
+	store := firefox.Store{
+		Client: &client,
+		URL:    storeUrl,
+	}
 
 	uploadResponse, err := store.UploadSource(appID, versionID, testFile)
 	require.NoError(t, err)

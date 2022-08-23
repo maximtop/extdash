@@ -93,12 +93,12 @@ func TestUploadNew(t *testing.T) {
 	}))
 	defer storeServer.Close()
 
-	storeUrl, err := url.Parse(storeServer.URL)
+	storeURL, err := url.Parse(storeServer.URL)
 	require.NoError(t, err)
 
 	store := firefox.Store{
 		Client: &client,
-		URL:    storeUrl,
+		URL:    storeURL,
 	}
 
 	result, err := store.UploadNew("testdata/test.txt")
@@ -136,12 +136,12 @@ func TestUploadUpdate(t *testing.T) {
 	}))
 	defer storeServer.Close()
 
-	storeUrl, err := url.Parse(storeServer.URL)
+	storeURL, err := url.Parse(storeServer.URL)
 	require.NoError(t, err)
 
 	store := firefox.Store{
 		Client: &client,
-		URL:    storeUrl,
+		URL:    storeURL,
 	}
 
 	actualResponse, err := store.UploadUpdate(appID, version, "testdata/extension.zip")
@@ -179,12 +179,12 @@ func TestUploadSource(t *testing.T) {
 	}))
 	defer storeServer.Close()
 
-	storeUrl, err := url.Parse(storeServer.URL)
+	storeURL, err := url.Parse(storeServer.URL)
 	require.NoError(t, err)
 
 	store := firefox.Store{
 		Client: &client,
-		URL:    storeUrl,
+		URL:    storeURL,
 	}
 
 	uploadResponse, err := store.UploadSource(appID, versionID, testFile)

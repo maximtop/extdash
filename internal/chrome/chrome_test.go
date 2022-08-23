@@ -115,12 +115,12 @@ func TestStatus(t *testing.T) {
 	}))
 	defer storeServer.Close()
 
-	storeUrl, err := url.Parse(storeServer.URL)
+	storeURL, err := url.Parse(storeServer.URL)
 	require.NoError(t, err)
 
 	store := chrome.Store{
 		Client: &client,
-		URL:    storeUrl,
+		URL:    storeURL,
 	}
 
 	actualStatusBytes, err := store.Status(appID)
@@ -174,12 +174,12 @@ func TestInsert(t *testing.T) {
 	}))
 	defer storeServer.Close()
 
-	storeUrl, err := url.Parse(storeServer.URL)
+	storeURL, err := url.Parse(storeServer.URL)
 	require.NoError(t, err)
 
 	store := chrome.Store{
 		Client: &client,
-		URL:    storeUrl,
+		URL:    storeURL,
 	}
 
 	result, err := store.Insert("./testdata/test.txt")
@@ -225,12 +225,12 @@ func TestUpdate(t *testing.T) {
 	}))
 	defer storeServer.Close()
 
-	storeUrl, err := url.Parse(storeServer.URL)
+	storeURL, err := url.Parse(storeServer.URL)
 	require.NoError(t, err)
 
 	store := chrome.Store{
 		Client: &client,
-		URL:    storeUrl,
+		URL:    storeURL,
 	}
 
 	result, err := store.Update(appID, "testdata/test.txt")
@@ -272,12 +272,12 @@ func TestPublish(t *testing.T) {
 	}))
 	defer storeServer.Close()
 
-	storeUrl, err := url.Parse(storeServer.URL)
+	storeURL, err := url.Parse(storeServer.URL)
 	require.NoError(t, err)
 
 	store := chrome.Store{
 		Client: &client,
-		URL:    storeUrl,
+		URL:    storeURL,
 	}
 
 	result, err := store.Publish(appID)

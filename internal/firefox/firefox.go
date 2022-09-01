@@ -17,6 +17,7 @@ import (
 
 	"github.com/AdguardTeam/golibs/errors"
 	"github.com/AdguardTeam/golibs/log"
+	"github.com/golang-jwt/jwt/v4"
 	"github.com/maximtop/extdash/internal/fileutil"
 )
 

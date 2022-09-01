@@ -11,7 +11,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/maximtop/extdash/internal/edge"
+	"github.com/adguardteam/go-webext/internal/edge"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )

@@ -2,10 +2,10 @@ start:
 	CompileDaemon -exclude-dir=".git" -exclude-dir="tmp"
 
 build: clean
-	go build
+	go build cli/webext
 
 clean:
-	rm -f extdash
+	rm -f webext
 
 lint:
 	 golangci-lint run ./...
@@ -18,4 +18,3 @@ test:
 
 zip:
 	cd tmp/extension && zip -r ../extension.zip ./
-

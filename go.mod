@@ -1,4 +1,4 @@
-module github.com/maximtop/extdash
+module github.com/adguardteam/go-webext
 
 go 1.19
 

@@ -12,7 +12,7 @@ import (
 	"time"
 
 	"github.com/AdguardTeam/golibs/errors"
-	"github.com/adguardteam/go-webext/internal/fileutil"
+	"github.com/maximtop/extdash/internal/fileutil"
 )
 
 // Client describes structure of a Chrome Store API client.

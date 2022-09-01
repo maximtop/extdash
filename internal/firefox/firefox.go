@@ -17,8 +17,7 @@ import (
 
 	"github.com/AdguardTeam/golibs/errors"
 	"github.com/AdguardTeam/golibs/log"
-	"github.com/adguardteam/go-webext/internal/fileutil"
-	"github.com/golang-jwt/jwt/v4"
+	"github.com/maximtop/extdash/internal/fileutil"
 )
 
 // AMO main url is https://addons.mozilla.org/

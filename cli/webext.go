@@ -6,12 +6,10 @@ import (
 	"net/url"
 	"os"
 
-	"github.com/adguardteam/go-webext/internal/chrome"
-	"github.com/adguardteam/go-webext/internal/edge"
-	"github.com/adguardteam/go-webext/internal/firefox"
-	"github.com/caarlos0/env/v6"
 	"github.com/joho/godotenv"
-	"github.com/urfave/cli/v2"
+	"github.com/maximtop/extdash/internal/chrome"
+	"github.com/maximtop/extdash/internal/edge"
+	"github.com/maximtop/extdash/internal/firefox"
 )
 
 func getChromeStore() (*chrome.Store, error) {

@@ -8,7 +8,7 @@ import (
 	"net/url"
 	"testing"
 
-	"github.com/adguardteam/go-webext/internal/chrome"
+	"github.com/maximtop/extdash/internal/chrome"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )

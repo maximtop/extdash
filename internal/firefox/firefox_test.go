@@ -10,7 +10,7 @@ import (
 	"time"
 
 	"github.com/AdguardTeam/golibs/errors"
-	"github.com/adguardteam/go-webext/internal/firefox"
+	"github.com/maximtop/extdash/internal/firefox"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
